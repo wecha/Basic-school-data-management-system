@@ -1,57 +1,114 @@
 package wmesaf.basicschool.model;
 
+import wmesaf.basicschool.interfaces.IAuthenticatable;
+
 /**
- * Represents an administrator of the school management system.
- * The admin is responsible for managing students, teachers, and system operations.
- * This class does not extend Person as admins are system users, not school personnel.
- * Demonstrates encapsulation and data validation.
+ * Represents an administrator in the school management system.
+ * This class implements the IAuthenticatable interface to provide
+ * authentication functionality for system administrators.
+ * 
+ * <p>Administrators have full access to manage students, teachers,
+ * and system settings. Each admin has a unique username and password
+ * for authentication.</p>
+ * 
+ * <p>This class demonstrates:
+ * <ul>
+ *   <li>Interface implementation (IAuthenticatable)</li>
+ *   <li>Encapsulation through private fields with public getters/setters</li>
+ *   <li>Exception handling for invalid data</li>
+ *   <li>Polymorphism through interface methods</li>
+ * </ul>
+ * </p>
  * 
  * @author wmesaf
  * @version 1.0
+ * @see IAuthenticatable
+ * @see Person
  */
-public class Admin {
+public class Admin implements IAuthenticatable {
     private int id;
     private String username;
-    private String password; // In real application, store hashed password
+    private String password;
     private String fullName;
     private String email;
-    private boolean isActive;
+    private boolean active;
     
     /**
      * Constructs a new Admin with the specified credentials.
+     * The admin account will be active by default.
      * 
-     * @param username the admin's username for login
-     * @param password the admin's password (will be hashed in production)
-     * @param fullName the admin's full name
-     * @param email the admin's email address
+     * @param username the administrator's username (must not be empty)
+     * @param password the administrator's password (must be at least 6 characters)
+     * @param fullName the administrator's full name
+     * @param email the administrator's email address
+     * @throws IllegalArgumentException if username is empty or password is too short
      */
     public Admin(String username, String password, String fullName, String email) {
         setUsername(username);
         setPassword(password);
         setFullName(fullName);
         setEmail(email);
-        this.isActive = true;
+        this.active = true;
     }
     
     /**
-     * Copy constructor for Admin.
-     * Creates a deep copy of an existing Admin object.
+     * Copy constructor that creates a deep copy of an existing Admin object.
      * 
-     * @param original the Admin to copy
+     * @param original the Admin object to copy
+     * @throws NullPointerException if original is null
      */
     public Admin(Admin original) {
+        if (original == null) {
+            throw new NullPointerException("Original Admin cannot be null");
+        }
+        
         this.id = original.id;
         this.username = original.username;
         this.password = original.password;
         this.fullName = original.fullName;
         this.email = original.email;
-        this.isActive = original.isActive;
+        this.active = original.active;
     }
     
-    // Getters and Setters with validation
+    /**
+     * Authenticates the admin using provided username and password.
+     * Implementation of the IAuthenticatable interface method.
+     * 
+     * @param username the username to verify
+     * @param password the password to verify
+     * @return true if both username and password match, false otherwise
+     */
+    @Override
+    public boolean authenticate(String username, String password) {
+        return this.username.equals(username) && this.password.equals(password);
+    }
     
     /**
-     * Returns the admin's unique identifier.
+     * Returns the role of this user.
+     * Implementation of the IAuthenticatable interface method.
+     * 
+     * @return the string "ADMIN" representing the administrator role
+     */
+    @Override
+    public String getRole() {
+        return "ADMIN";
+    }
+    
+    /**
+     * Checks if the admin account is active.
+     * Implementation of the IAuthenticatable interface method.
+     * 
+     * @return true if the account is active, false otherwise
+     */
+    @Override
+    public boolean isActive() {
+        return active;
+    }
+    
+    // ==================== GETTERS AND SETTERS ====================
+    
+    /**
+     * Returns the unique identifier of the admin.
      * 
      * @return the admin ID
      */
@@ -60,9 +117,9 @@ public class Admin {
     }
 
     /**
-     * Sets the admin's unique identifier.
+     * Sets the unique identifier of the admin.
      * 
-     * @param id the new ID
+     * @param id the new ID to set
      * @throws IllegalArgumentException if id is negative
      */
     public void setId(int id) {
@@ -85,20 +142,18 @@ public class Admin {
      * Sets the admin's username.
      * 
      * @param username the new username
-     * @throws IllegalArgumentException if username is null, empty, or too short
+     * @throws IllegalArgumentException if username is null or empty
      */
     public void setUsername(String username) {
         if (username == null || username.trim().isEmpty()) {
             throw new IllegalArgumentException("Username cannot be null or empty");
         }
-        if (username.trim().length() < 3) {
-            throw new IllegalArgumentException("Username must be at least 3 characters");
-        }
         this.username = username.trim();
     }
 
     /**
-     * Returns the admin's password (hashed in production).
+     * Returns the admin's password.
+     * Note: In a production system, passwords should be hashed.
      * 
      * @return the password
      */
@@ -110,7 +165,7 @@ public class Admin {
      * Sets the admin's password.
      * 
      * @param password the new password
-     * @throws IllegalArgumentException if password is null, empty, or too weak
+     * @throws IllegalArgumentException if password is null or less than 6 characters
      */
     public void setPassword(String password) {
         if (password == null || password.isEmpty()) {
@@ -119,34 +174,7 @@ public class Admin {
         if (password.length() < 6) {
             throw new IllegalArgumentException("Password must be at least 6 characters");
         }
-        // In production, hash the password before storing
         this.password = password;
-    }
-    
-    /**
-     * Validates if the provided password matches the admin's password.
-     * In production, compare hashed values.
-     * 
-     * @param inputPassword the password to validate
-     * @return true if password matches, false otherwise
-     */
-    public boolean validatePassword(String inputPassword) {
-        return this.password.equals(inputPassword);
-    }
-    
-    /**
-     * Changes the admin's password with validation.
-     ** @param oldPassword the current password
-     * @param newPassword the new password
-     * @return true if password changed successfully
-     * @throws IllegalArgumentException if old password is incorrect or new password is invalid
-     */
-    public boolean changePassword(String oldPassword, String newPassword) {
-        if (!validatePassword(oldPassword)) {
-            throw new IllegalArgumentException("Old password is incorrect");
-        }
-        setPassword(newPassword);
-        return true;
     }
 
     /**
@@ -174,7 +202,7 @@ public class Admin {
     /**
      * Returns the admin's email address.
      * 
-     * @return the email
+     * @return the email address
      */
     public String getEmail() {
         return email;
@@ -183,7 +211,7 @@ public class Admin {
     /**
      * Sets the admin's email address.
      * 
-     * @param email the new email
+     * @param email the new email address
      * @throws IllegalArgumentException if email is null, empty, or invalid format
      */
     public void setEmail(String email) {
@@ -195,44 +223,57 @@ public class Admin {
         }
         this.email = email.trim().toLowerCase();
     }
-
+    
     /**
-     * Returns whether the admin account is active.
-     * 
-     * @return true if active, false otherwise
-     */
-    public boolean isActive() {
-        return isActive;
-    }
-
-    /**
-     * Sets the admin account's active status.
+     * Sets the active status of the admin account.
      * 
      * @param active the new active status
      */
     public void setActive(boolean active) {
-        this.isActive = active;
+        this.active = active;
+    }
+    
+    // ==================== ADDITIONAL METHODS ====================
+    
+    /**
+     * Changes the admin's password after verifying the old password.
+     * 
+     * @param oldPassword the current password for verification
+     * @param newPassword the new password to set
+     * @return true if password was changed successfully
+     * @throws IllegalArgumentException if old password is incorrect
+     * @throws IllegalArgumentException if new password is invalid
+     */
+    public boolean changePassword(String oldPassword, String newPassword) {
+        if (!this.password.equals(oldPassword)) {
+            throw new IllegalArgumentException("Old password is incorrect");
+        }
+        if (oldPassword.equals(newPassword)) {
+            throw new IllegalArgumentException("New password must be different from old password");
+        }
+        setPassword(newPassword);
+        return true;
     }
     
     /**
      * Activates the admin account.
      */
     public void activate() {
-        this.isActive = true;
+        this.active = true;
     }
     
     /**
      * Deactivates the admin account.
      */
     public void deactivate() {
-        this.isActive = false;
+        this.active = false;
     }
     
     /**
      * Returns a string representation of the Admin object.
-     * Excludes password for security.
+     * Password is excluded for security reasons.
      * 
-     * @return a string representation
+     * @return a string containing admin details
      */
     @Override
     public String toString() {
@@ -241,16 +282,18 @@ public class Admin {
                ", username='" + username + '\'' + 
                ", fullName='" + fullName + '\'' + 
                ", email='" + email + '\'' + 
-               ", isActive=" + isActive + 
+               ", active=" + active + 
+               ", role='" + getRole() + '\'' +
                '}';
     }
     
     /**
-     * Returns a safe representation without sensitive data.
+     * Returns a safe string representation without sensitive information.
+     * Suitable for logging and display purposes.
      * 
-     * @return safe string representation
+     * @return a safe string representation
      */
     public String toSafeString() {
-        return "Admin: " + fullName + " (" + username + ")";
+        return "Admin: " + fullName + " (" + username + ") - " + getRole();
     }
 }
