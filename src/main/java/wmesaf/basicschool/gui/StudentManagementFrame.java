@@ -70,7 +70,8 @@ public class StudentManagementFrame extends JFrame {
         }
         
         // ========== TABLE ==========
-        String[] columns = {"ID", "Student ID", "Name", "Grade", "Email", "Phone", "Enrollment Date"};
+        // ⚠️ التعديل هنا: إزالة عمود "ID"
+        String[] columns = {"Student ID", "Name", "Grade", "Email", "Phone", "Enrollment Date"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -140,14 +141,14 @@ public class StudentManagementFrame extends JFrame {
         System.out.println("📊 Loading " + students.size() + " students...");
         
         for (Student student : students) {
+            // ⚠️ التعديل هنا: إزالة student.getId()
             Object[] row = {
-                student.getId(),
-                student.getStudentId(),
-                student.getName(),
-                student.getGrade(),
-                student.getEmail(),
-                student.getPhone(),
-                student.getEnrollmentDate().format(formatter)
+                student.getStudentId(),           // Student ID
+                student.getName(),                // Name
+                student.getGrade(),               // Grade
+                student.getEmail(),               // Email
+                student.getPhone(),               // Phone
+                student.getEnrollmentDate().format(formatter) // Enrollment Date
             };
             tableModel.addRow(row);
         }
@@ -178,7 +179,6 @@ public class StudentManagementFrame extends JFrame {
         
         for (Student student : students) {
             Object[] row = {
-                student.getId(),
                 student.getStudentId(),
                 student.getName(),
                 student.getGrade(),
@@ -327,7 +327,10 @@ public class StudentManagementFrame extends JFrame {
             return;
         }
         
-        String studentId = (String) tableModel.getValueAt(selectedRow, 1);
+        // ⚠️ التعديل هنا: استخدام العمود 0 بدلاً من 1 (لأننا أزلنا عمود ID)
+        String studentId = (String) tableModel.getValueAt(selectedRow, 0); // كان 1 أصبح 0
+        String studentName = (String) tableModel.getValueAt(selectedRow, 1); // كان 2 أصبح 1
+        
         Student student = studentDAO.getStudentByStudentId(studentId);
         
         if (student == null) {
@@ -461,8 +464,9 @@ public class StudentManagementFrame extends JFrame {
             return;
         }
         
-        String studentId = (String) tableModel.getValueAt(selectedRow, 1);
-        String studentName = (String) tableModel.getValueAt(selectedRow, 2);
+        // ⚠️ التعديل هنا: استخدام العمود 0 بدلاً من 1
+        String studentId = (String) tableModel.getValueAt(selectedRow, 0); // كان 1 أصبح 0
+        String studentName = (String) tableModel.getValueAt(selectedRow, 1); // كان 2 أصبح 1
         
         int confirm = JOptionPane.showConfirmDialog(this,
             "Are you sure you want to delete student?\n\n" +
