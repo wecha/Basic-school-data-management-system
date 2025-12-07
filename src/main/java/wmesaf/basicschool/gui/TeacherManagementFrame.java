@@ -70,7 +70,7 @@ public class TeacherManagementFrame extends JFrame {
         }
         
         // ========== TABLE ==========
-        String[] columns = {"ID", "Teacher ID", "Name", "Subject", "Salary", "Email", "Hire Date"};
+        String[] columns = {"Teacher ID", "Name", "Subject", "Salary", "Email", "Hire Date"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -141,7 +141,6 @@ public class TeacherManagementFrame extends JFrame {
         
         for (Teacher teacher : teachers) {
             Object[] row = {
-                teacher.getId(),
                 teacher.getTeacherId(),
                 teacher.getName(),
                 teacher.getSubject(),
@@ -178,7 +177,6 @@ public class TeacherManagementFrame extends JFrame {
         
         for (Teacher teacher : teachers) {
             Object[] row = {
-                teacher.getId(),
                 teacher.getTeacherId(),
                 teacher.getName(),
                 teacher.getSubject(),
@@ -191,16 +189,13 @@ public class TeacherManagementFrame extends JFrame {
     }
     
     private void addTeacher() {
-        // Create dialog
         JDialog dialog = new JDialog(this, "Add New Teacher", true);
         dialog.setLayout(new BorderLayout());
         dialog.setSize(450, 550);
         
-        // Create form panel
         JPanel formPanel = new JPanel(new GridLayout(9, 2, 10, 10));
         formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
-        // Form fields
         JTextField nameField = new JTextField();
         JTextField teacherIdField = new JTextField();
         JTextField subjectField = new JTextField("Mathematics");
@@ -211,7 +206,6 @@ public class TeacherManagementFrame extends JFrame {
         JTextField birthDateField = new JTextField("1980-01-01");
         JTextField hireDateField = new JTextField(LocalDate.now().toString());
         
-        // Labels and fields
         formPanel.add(new JLabel("Full Name *:"));
         formPanel.add(nameField);
         formPanel.add(new JLabel("Teacher ID *:"));
@@ -233,7 +227,6 @@ public class TeacherManagementFrame extends JFrame {
         formPanel.add(new JLabel(""));
         formPanel.add(new JLabel("* Required fields"));
         
-        // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         JButton saveButton = new JButton("Save Teacher");
         JButton cancelButton = new JButton("Cancel");
@@ -244,7 +237,6 @@ public class TeacherManagementFrame extends JFrame {
         cancelButton.setForeground(Color.WHITE);
         
         saveButton.addActionListener(e -> {
-            // Validate required fields
             if (nameField.getText().trim().isEmpty() || teacherIdField.getText().trim().isEmpty()) {
                 JOptionPane.showMessageDialog(dialog,
                     "Please fill in all required fields (Name and Teacher ID)",
@@ -254,7 +246,6 @@ public class TeacherManagementFrame extends JFrame {
             }
             
             try {
-                // Check if teacher ID already exists
                 if (teacherDAO.teacherIdExists(teacherIdField.getText().trim())) {
                     JOptionPane.showMessageDialog(dialog,
                         "Teacher ID already exists. Please use a different ID.",
@@ -263,10 +254,8 @@ public class TeacherManagementFrame extends JFrame {
                     return;
                 }
                 
-                // Parse salary
                 double salary = Double.parseDouble(salaryField.getText().trim());
                 
-                // Create teacher object
                 Teacher newTeacher = new Teacher(
                     nameField.getText().trim(),
                     emailField.getText().trim(),
@@ -279,7 +268,6 @@ public class TeacherManagementFrame extends JFrame {
                     LocalDate.parse(hireDateField.getText().trim())
                 );
                 
-                // Add to database
                 if (teacherDAO.addTeacher(newTeacher)) {
                     JOptionPane.showMessageDialog(dialog,
                         "Teacher added successfully!\n\n" +
@@ -291,7 +279,7 @@ public class TeacherManagementFrame extends JFrame {
                         JOptionPane.INFORMATION_MESSAGE);
                     
                     dialog.dispose();
-                    loadTeachers(); // Refresh table
+                    loadTeachers();
                 } else {
                     JOptionPane.showMessageDialog(dialog,
                         "Failed to add teacher. Please try again.",
@@ -324,7 +312,6 @@ public class TeacherManagementFrame extends JFrame {
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
         
-        // Add components to dialog
         dialog.add(formPanel, BorderLayout.CENTER);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
         dialog.setLocationRelativeTo(this);
@@ -341,7 +328,7 @@ public class TeacherManagementFrame extends JFrame {
             return;
         }
         
-        String teacherId = (String) tableModel.getValueAt(selectedRow, 1);
+        String teacherId = (String) tableModel.getValueAt(selectedRow, 0);
         Teacher teacher = teacherDAO.getTeacherByTeacherId(teacherId);
         
         if (teacher == null) {
@@ -352,7 +339,6 @@ public class TeacherManagementFrame extends JFrame {
             return;
         }
         
-        // Create edit dialog (similar to add but with pre-filled values)
         JDialog dialog = new JDialog(this, "Edit Teacher", true);
         dialog.setLayout(new BorderLayout());
         dialog.setSize(450, 550);
@@ -362,7 +348,7 @@ public class TeacherManagementFrame extends JFrame {
         
         JTextField nameField = new JTextField(teacher.getName());
         JTextField teacherIdField = new JTextField(teacher.getTeacherId());
-        teacherIdField.setEditable(false); // Can't change ID
+        teacherIdField.setEditable(false);
         JTextField subjectField = new JTextField(teacher.getSubject());
         JTextField salaryField = new JTextField(String.format("%.2f", teacher.getSalary()));
         JTextField emailField = new JTextField(teacher.getEmail());
@@ -401,7 +387,6 @@ public class TeacherManagementFrame extends JFrame {
         
         saveButton.addActionListener(e -> {
             try {
-                // Update teacher object
                 teacher.setName(nameField.getText().trim());
                 teacher.setSubject(subjectField.getText().trim());
                 teacher.setSalary(Double.parseDouble(salaryField.getText().trim()));
@@ -453,8 +438,8 @@ public class TeacherManagementFrame extends JFrame {
             return;
         }
         
-        String teacherId = (String) tableModel.getValueAt(selectedRow, 1);
-        String teacherName = (String) tableModel.getValueAt(selectedRow, 2);
+        String teacherId = (String) tableModel.getValueAt(selectedRow, 0);
+        String teacherName = (String) tableModel.getValueAt(selectedRow, 1);
         
         int confirm = JOptionPane.showConfirmDialog(this,
             "Are you sure you want to delete teacher?\n\n" +
