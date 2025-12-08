@@ -100,26 +100,46 @@ public class TeacherDAO {
 //    }
 //    return false;
 //}
-    public Teacher getTeacherById(int id) {
-        String sql = "SELECT p.*, t.teacher_id, t.subject, t.salary, t.hire_date " +
-                    "FROM persons p " +
-                    "JOIN teachers t ON p.id = t.person_id " +
-                    "WHERE p.id = ? AND p.type = 'TEACHER'";
-        
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, id);
-            
-            ResultSet rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                return createTeacherFromResultSet(rs);
-            }
-        } catch (SQLException e) {
-            System.err.println("❌ Error getting teacher: " + e.getMessage());
-        }
-        return null;
-    }
+//    public Teacher getTeacherById(int id) {
+//        String sql = "SELECT p.*, t.teacher_id, t.subject, t.salary, t.hire_date " +
+//                    "FROM persons p " +
+//                    "JOIN teachers t ON p.id = t.person_id " +
+//                    "WHERE p.id = ? AND p.type = 'TEACHER'";
+//        
+//        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+//            pstmt.setInt(1, id);
+//            
+//            ResultSet rs = pstmt.executeQuery();
+//            
+//            if (rs.next()) {
+//                return createTeacherFromResultSet(rs);
+//            }
+//        } catch (SQLException e) {
+//            System.err.println("❌ Error getting teacher: " + e.getMessage());
+//        }
+//        return null;
+//    }
+//    
+    // أضف في TeacherDAO.java
+public Teacher getTeacherById(int id) {
+    String sql = "SELECT p.*, t.teacher_id, t.subject, t.salary, t.hire_date " +
+                "FROM persons p " +
+                "JOIN teachers t ON p.id = t.person_id " +
+                "WHERE p.id = ? AND p.type = 'TEACHER'";
     
+    try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        pstmt.setInt(1, id);
+        
+        ResultSet rs = pstmt.executeQuery();
+        
+        if (rs.next()) {
+            return createTeacherFromResultSet(rs);
+        }
+    } catch (SQLException e) {
+        System.err.println("❌ Error getting teacher by ID: " + e.getMessage());
+    }
+    return null;
+}
     public Teacher getTeacherByTeacherId(String teacherId) {
         String sql = "SELECT p.*, t.teacher_id, t.subject, t.salary, t.hire_date " +
                     "FROM persons p " +
