@@ -1,6 +1,7 @@
 package wmesaf.basicschool.gui;
 
-import wmesaf.basicschool.dao.StudentDAO;
+import wmesaf.basicschool.business.StudentService;
+import wmesaf.basicschool.business.PersonFactory;
 import wmesaf.basicschool.model.Student;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -12,13 +13,13 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 
 public class StudentManagementFrame extends JFrame {
-    private StudentDAO studentDAO;
+    private StudentService studentService;
     private JTable studentTable;
     private DefaultTableModel tableModel;
     private JTextField searchField;
     
     public StudentManagementFrame() {
-        studentDAO = new StudentDAO();
+        studentService = new StudentService();
         initUI();
         setupFrame();
         loadStudents();
@@ -70,7 +71,6 @@ public class StudentManagementFrame extends JFrame {
         }
         
         // ========== TABLE ==========
-        // ⚠️ التعديل هنا: إزالة عمود "ID"
         String[] columns = {"Student ID", "Name", "Grade", "Email", "Phone", "Enrollment Date"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -134,21 +134,20 @@ public class StudentManagementFrame extends JFrame {
     
     private void loadStudents() {
         tableModel.setRowCount(0);
-        List<Student> students = studentDAO.getAllStudents();
+        List<Student> students = studentService.getAllStudents();
         
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         
         System.out.println("📊 Loading " + students.size() + " students...");
         
         for (Student student : students) {
-            // ⚠️ التعديل هنا: إزالة student.getId()
             Object[] row = {
-                student.getStudentId(),           // Student ID
-                student.getName(),                // Name
-                student.getGrade(),               // Grade
-                student.getEmail(),               // Email
-                student.getPhone(),               // Phone
-                student.getEnrollmentDate().format(formatter) // Enrollment Date
+                student.getStudentId(),
+                student.getName(),
+                student.getGrade(),
+                student.getEmail(),
+                student.getPhone(),
+                student.getEnrollmentDate().format(formatter)
             };
             tableModel.addRow(row);
         }
@@ -164,7 +163,7 @@ public class StudentManagementFrame extends JFrame {
         }
         
         tableModel.setRowCount(0);
-        List<Student> students = studentDAO.searchStudentsByName(searchTerm);
+        List<Student> students = studentService.searchStudentsByName(searchTerm);
         
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         
@@ -191,16 +190,13 @@ public class StudentManagementFrame extends JFrame {
     }
     
     private void addStudent() {
-        // Create dialog
         JDialog dialog = new JDialog(this, "Add New Student", true);
         dialog.setLayout(new BorderLayout());
         dialog.setSize(450, 550);
         
-        // Create form panel
         JPanel formPanel = new JPanel(new GridLayout(9, 2, 10, 10));
         formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
-        // Form fields
         JTextField nameField = new JTextField();
         JTextField studentIdField = new JTextField();
         JTextField gradeField = new JTextField("10th Grade");
@@ -210,7 +206,6 @@ public class StudentManagementFrame extends JFrame {
         JTextField birthDateField = new JTextField("2005-01-01");
         JTextField enrollDateField = new JTextField(LocalDate.now().toString());
         
-        // Labels and fields
         formPanel.add(new JLabel("Full Name *:"));
         formPanel.add(nameField);
         formPanel.add(new JLabel("Student ID *:"));
@@ -230,7 +225,6 @@ public class StudentManagementFrame extends JFrame {
         formPanel.add(new JLabel(""));
         formPanel.add(new JLabel("* Required fields"));
         
-        // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         JButton saveButton = new JButton("Save Student");
         JButton cancelButton = new JButton("Cancel");
@@ -241,7 +235,6 @@ public class StudentManagementFrame extends JFrame {
         cancelButton.setForeground(Color.WHITE);
         
         saveButton.addActionListener(e -> {
-            // Validate required fields
             if (nameField.getText().trim().isEmpty() || studentIdField.getText().trim().isEmpty()) {
                 JOptionPane.showMessageDialog(dialog,
                     "Please fill in all required fields (Name and Student ID)",
@@ -251,8 +244,7 @@ public class StudentManagementFrame extends JFrame {
             }
             
             try {
-                // Check if student ID already exists
-                if (studentDAO.studentIdExists(studentIdField.getText().trim())) {
+                if (studentService.studentIdExists(studentIdField.getText().trim())) {
                     JOptionPane.showMessageDialog(dialog,
                         "Student ID already exists. Please use a different ID.",
                         "Duplicate ID",
@@ -260,8 +252,8 @@ public class StudentManagementFrame extends JFrame {
                     return;
                 }
                 
-                // Create student object
-                Student newStudent = new Student(
+                // استخدام Factory Pattern لإنشاء الطالب
+                Student newStudent = PersonFactory.createStudent(
                     nameField.getText().trim(),
                     emailField.getText().trim(),
                     phoneField.getText().trim(),
@@ -272,8 +264,8 @@ public class StudentManagementFrame extends JFrame {
                     LocalDate.parse(enrollDateField.getText().trim())
                 );
                 
-                // Add to database
-                if (studentDAO.addStudent(newStudent)) {
+                // استخدام Service Layer لحفظ الطالب
+                if (studentService.addStudent(newStudent)) {
                     JOptionPane.showMessageDialog(dialog,
                         "Student added successfully!\n\n" +
                         "Name: " + newStudent.getName() + "\n" +
@@ -283,7 +275,7 @@ public class StudentManagementFrame extends JFrame {
                         JOptionPane.INFORMATION_MESSAGE);
                     
                     dialog.dispose();
-                    loadStudents(); // Refresh table
+                    loadStudents();
                 } else {
                     JOptionPane.showMessageDialog(dialog,
                         "Failed to add student. Please try again.",
@@ -291,6 +283,11 @@ public class StudentManagementFrame extends JFrame {
                         JOptionPane.ERROR_MESSAGE);
                 }
                 
+            } catch (IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(dialog,
+                    "Business Rule Error: " + ex.getMessage(),
+                    "Validation Failed",
+                    JOptionPane.ERROR_MESSAGE);
             } catch (DateTimeParseException ex) {
                 JOptionPane.showMessageDialog(dialog,
                     "Invalid date format. Please use YYYY-MM-DD format.\n" +
@@ -310,7 +307,6 @@ public class StudentManagementFrame extends JFrame {
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
         
-        // Add components to dialog
         dialog.add(formPanel, BorderLayout.CENTER);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
         dialog.setLocationRelativeTo(this);
@@ -327,11 +323,10 @@ public class StudentManagementFrame extends JFrame {
             return;
         }
         
-        // ⚠️ التعديل هنا: استخدام العمود 0 بدلاً من 1 (لأننا أزلنا عمود ID)
-        String studentId = (String) tableModel.getValueAt(selectedRow, 0); // كان 1 أصبح 0
-        String studentName = (String) tableModel.getValueAt(selectedRow, 1); // كان 2 أصبح 1
+        String studentId = (String) tableModel.getValueAt(selectedRow, 0);
+        String studentName = (String) tableModel.getValueAt(selectedRow, 1);
         
-        Student student = studentDAO.getStudentByStudentId(studentId);
+        Student student = studentService.getStudentByStudentId(studentId);
         
         if (student == null) {
             JOptionPane.showMessageDialog(this,
@@ -341,7 +336,6 @@ public class StudentManagementFrame extends JFrame {
             return;
         }
         
-        // Create edit dialog
         JDialog dialog = new JDialog(this, "Edit Student", true);
         dialog.setLayout(new BorderLayout());
         dialog.setSize(450, 550);
@@ -349,10 +343,9 @@ public class StudentManagementFrame extends JFrame {
         JPanel formPanel = new JPanel(new GridLayout(9, 2, 10, 10));
         formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
-        // Pre-fill form fields with current student data
         JTextField nameField = new JTextField(student.getName());
         JTextField studentIdField = new JTextField(student.getStudentId());
-        studentIdField.setEditable(false); // Can't change student ID
+        studentIdField.setEditable(false);
         JTextField gradeField = new JTextField(student.getGrade());
         JTextField emailField = new JTextField(student.getEmail());
         JTextField phoneField = new JTextField(student.getPhone());
@@ -379,18 +372,16 @@ public class StudentManagementFrame extends JFrame {
         formPanel.add(new JLabel(""));
         formPanel.add(new JLabel("* Student ID cannot be changed"));
         
-        // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         JButton updateButton = new JButton("Update Student");
         JButton cancelButton = new JButton("Cancel");
         
-        updateButton.setBackground(new Color(241, 196, 15)); // Yellow
+        updateButton.setBackground(new Color(241, 196, 15));
         updateButton.setForeground(Color.BLACK);
         cancelButton.setBackground(new Color(231, 76, 60));
         cancelButton.setForeground(Color.WHITE);
         
         updateButton.addActionListener(e -> {
-            // Validate required fields
             if (nameField.getText().trim().isEmpty()) {
                 JOptionPane.showMessageDialog(dialog,
                     "Student name cannot be empty",
@@ -400,7 +391,6 @@ public class StudentManagementFrame extends JFrame {
             }
             
             try {
-                // Update student object
                 student.setName(nameField.getText().trim());
                 student.setGrade(gradeField.getText().trim());
                 student.setEmail(emailField.getText().trim());
@@ -409,8 +399,7 @@ public class StudentManagementFrame extends JFrame {
                 student.setBirthDate(LocalDate.parse(birthDateField.getText().trim()));
                 student.setEnrollmentDate(LocalDate.parse(enrollDateField.getText().trim()));
                 
-                // Update in database
-                if (studentDAO.updateStudent(student)) {
+                if (studentService.updateStudent(student)) {
                     JOptionPane.showMessageDialog(dialog,
                         "Student updated successfully!\n\n" +
                         "Name: " + student.getName() + "\n" +
@@ -420,7 +409,7 @@ public class StudentManagementFrame extends JFrame {
                         JOptionPane.INFORMATION_MESSAGE);
                     
                     dialog.dispose();
-                    loadStudents(); // Refresh table
+                    loadStudents();
                 } else {
                     JOptionPane.showMessageDialog(dialog,
                         "Failed to update student. Please try again.",
@@ -447,7 +436,6 @@ public class StudentManagementFrame extends JFrame {
         buttonPanel.add(updateButton);
         buttonPanel.add(cancelButton);
         
-        // Add components to dialog
         dialog.add(formPanel, BorderLayout.CENTER);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
         dialog.setLocationRelativeTo(this);
@@ -464,9 +452,8 @@ public class StudentManagementFrame extends JFrame {
             return;
         }
         
-        // ⚠️ التعديل هنا: استخدام العمود 0 بدلاً من 1
-        String studentId = (String) tableModel.getValueAt(selectedRow, 0); // كان 1 أصبح 0
-        String studentName = (String) tableModel.getValueAt(selectedRow, 1); // كان 2 أصبح 1
+        String studentId = (String) tableModel.getValueAt(selectedRow, 0);
+        String studentName = (String) tableModel.getValueAt(selectedRow, 1);
         
         int confirm = JOptionPane.showConfirmDialog(this,
             "Are you sure you want to delete student?\n\n" +
@@ -479,9 +466,9 @@ public class StudentManagementFrame extends JFrame {
         
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                Student student = studentDAO.getStudentByStudentId(studentId);
+                Student student = studentService.getStudentByStudentId(studentId);
                 if (student != null) {
-                    if (studentDAO.deleteStudent(student.getId())) {
+                    if (studentService.deleteStudent(student.getId())) {
                         JOptionPane.showMessageDialog(this,
                             "Student deleted successfully:\n" +
                             "Name: " + studentName + "\n" +
