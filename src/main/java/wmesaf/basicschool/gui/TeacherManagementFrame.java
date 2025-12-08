@@ -1,6 +1,7 @@
 package wmesaf.basicschool.gui;
 
-import wmesaf.basicschool.dao.TeacherDAO;
+import wmesaf.basicschool.business.TeacherService;
+import wmesaf.basicschool.business.PersonFactory;
 import wmesaf.basicschool.model.Teacher;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -8,17 +9,16 @@ import java.awt.*;
 import java.awt.event.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 public class TeacherManagementFrame extends JFrame {
-    private TeacherDAO teacherDAO;
+    private TeacherService teacherService;
     private JTable teacherTable;
     private DefaultTableModel tableModel;
     private JTextField searchField;
     
     public TeacherManagementFrame() {
-        teacherDAO = new TeacherDAO();
+        teacherService = new TeacherService();
         initUI();
         setupFrame();
         loadTeachers();
@@ -34,7 +34,7 @@ public class TeacherManagementFrame extends JFrame {
         // Title
         JLabel titleLabel = new JLabel("Teacher Management");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        titleLabel.setForeground(new Color(155, 89, 182)); // Purple color
+        titleLabel.setForeground(new Color(155, 89, 182));
         
         // Search panel
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -58,10 +58,10 @@ public class TeacherManagementFrame extends JFrame {
         
         String[] buttonNames = {"Add Teacher", "Edit Teacher", "Delete Teacher", "Refresh"};
         Color[] buttonColors = {
-            new Color(46, 204, 113),  // Green
-            new Color(241, 196, 15),  // Yellow
-            new Color(231, 76, 60),   // Red
-            new Color(155, 89, 182)   // Purple
+            new Color(46, 204, 113),
+            new Color(241, 196, 15),
+            new Color(231, 76, 60),
+            new Color(155, 89, 182)
         };
         
         for (int i = 0; i < buttonNames.length; i++) {
@@ -85,7 +85,6 @@ public class TeacherManagementFrame extends JFrame {
         teacherTable.getTableHeader().setBackground(new Color(155, 89, 182));
         teacherTable.getTableHeader().setForeground(Color.WHITE);
         
-        // Add double-click listener for editing
         teacherTable.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
@@ -112,7 +111,6 @@ public class TeacherManagementFrame extends JFrame {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(150, 40));
         
-        // Add action listeners
         switch (text) {
             case "Add Teacher":
                 button.addActionListener(e -> addTeacher());
@@ -133,7 +131,7 @@ public class TeacherManagementFrame extends JFrame {
     
     private void loadTeachers() {
         tableModel.setRowCount(0);
-        List<Teacher> teachers = teacherDAO.getAllTeachers();
+        List<Teacher> teachers = teacherService.getAllTeachers();
         
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         
@@ -162,7 +160,7 @@ public class TeacherManagementFrame extends JFrame {
         }
         
         tableModel.setRowCount(0);
-        List<Teacher> teachers = teacherDAO.searchTeachersByName(searchTerm);
+        List<Teacher> teachers = teacherService.searchTeachersByName(searchTerm);
         
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         
@@ -236,7 +234,9 @@ public class TeacherManagementFrame extends JFrame {
         cancelButton.setBackground(new Color(231, 76, 60));
         cancelButton.setForeground(Color.WHITE);
         
+        // ✅ هذا هو الجزء المصحح - استخدام try-catch منفصل
         saveButton.addActionListener(e -> {
+            // التحقق من الحقول المطلوبة
             if (nameField.getText().trim().isEmpty() || teacherIdField.getText().trim().isEmpty()) {
                 JOptionPane.showMessageDialog(dialog,
                     "Please fill in all required fields (Name and Teacher ID)",
@@ -245,30 +245,56 @@ public class TeacherManagementFrame extends JFrame {
                 return;
             }
             
+            // التحقق من وجود ID مكرر
+            if (teacherService.teacherIdExists(teacherIdField.getText().trim())) {
+                JOptionPane.showMessageDialog(dialog,
+                    "Teacher ID already exists. Please use a different ID.",
+                    "Duplicate ID",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // محاولة تحويل الراتب
+            double salary;
             try {
-                if (teacherDAO.teacherIdExists(teacherIdField.getText().trim())) {
-                    JOptionPane.showMessageDialog(dialog,
-                        "Teacher ID already exists. Please use a different ID.",
-                        "Duplicate ID",
-                        JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                
-                double salary = Double.parseDouble(salaryField.getText().trim());
-                
-                Teacher newTeacher = new Teacher(
+                salary = Double.parseDouble(salaryField.getText().trim());
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(dialog,
+                    "Invalid salary format. Please enter a valid number.\nExample: 2500.00",
+                    "Salary Format Error",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // محاولة تحويل التواريخ
+            LocalDate birthDate;
+            LocalDate hireDate;
+            try {
+                birthDate = LocalDate.parse(birthDateField.getText().trim());
+                hireDate = LocalDate.parse(hireDateField.getText().trim());
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog,
+                    "Invalid date format. Please use YYYY-MM-DD format.\nExample: 1980-01-01",
+                    "Date Format Error",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // الآن إنشاء وحفظ المعلم
+            try {
+                Teacher newTeacher = PersonFactory.createTeacher(
                     nameField.getText().trim(),
                     emailField.getText().trim(),
                     phoneField.getText().trim(),
                     addressField.getText().trim(),
-                    LocalDate.parse(birthDateField.getText().trim()),
+                    birthDate,
                     teacherIdField.getText().trim(),
                     subjectField.getText().trim(),
                     salary,
-                    LocalDate.parse(hireDateField.getText().trim())
+                    hireDate
                 );
                 
-                if (teacherDAO.addTeacher(newTeacher)) {
+                if (teacherService.addTeacher(newTeacher)) {
                     JOptionPane.showMessageDialog(dialog,
                         "Teacher added successfully!\n\n" +
                         "Name: " + newTeacher.getName() + "\n" +
@@ -287,22 +313,10 @@ public class TeacherManagementFrame extends JFrame {
                         JOptionPane.ERROR_MESSAGE);
                 }
                 
-            } catch (NumberFormatException ex) {
+            } catch (IllegalArgumentException ex) {
                 JOptionPane.showMessageDialog(dialog,
-                    "Invalid salary format. Please enter a valid number.\n" +
-                    "Example: 2500.00",
-                    "Salary Format Error",
-                    JOptionPane.ERROR_MESSAGE);
-            } catch (DateTimeParseException ex) {
-                JOptionPane.showMessageDialog(dialog,
-                    "Invalid date format. Please use YYYY-MM-DD format.\n" +
-                    "Example: 1980-01-01",
-                    "Date Format Error",
-                    JOptionPane.ERROR_MESSAGE);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog,
-                    "Error: " + ex.getMessage(),
-                    "Error",
+                    "Business Rule Error: " + ex.getMessage(),
+                    "Validation Failed",
                     JOptionPane.ERROR_MESSAGE);
             }
         });
@@ -329,7 +343,7 @@ public class TeacherManagementFrame extends JFrame {
         }
         
         String teacherId = (String) tableModel.getValueAt(selectedRow, 0);
-        Teacher teacher = teacherDAO.getTeacherByTeacherId(teacherId);
+        Teacher teacher = teacherService.getTeacherByTeacherId(teacherId);
         
         if (teacher == null) {
             JOptionPane.showMessageDialog(this,
@@ -396,7 +410,7 @@ public class TeacherManagementFrame extends JFrame {
                 teacher.setBirthDate(LocalDate.parse(birthDateField.getText().trim()));
                 teacher.setHireDate(LocalDate.parse(hireDateField.getText().trim()));
                 
-                if (teacherDAO.updateTeacher(teacher)) {
+                if (teacherService.updateTeacher(teacher)) {
                     JOptionPane.showMessageDialog(dialog,
                         "Teacher updated successfully!",
                         "Success",
@@ -452,9 +466,9 @@ public class TeacherManagementFrame extends JFrame {
         
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                Teacher teacher = teacherDAO.getTeacherByTeacherId(teacherId);
+                Teacher teacher = teacherService.getTeacherByTeacherId(teacherId);
                 if (teacher != null) {
-                    if (teacherDAO.deleteTeacher(teacher.getId())) {
+                    if (teacherService.deleteTeacher(teacher.getId())) {
                         JOptionPane.showMessageDialog(this,
                             "Teacher deleted successfully:\n" +
                             "Name: " + teacherName + "\n" +
