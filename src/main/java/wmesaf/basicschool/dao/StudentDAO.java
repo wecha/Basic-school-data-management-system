@@ -56,70 +56,27 @@ public class StudentDAO {
         }
         return false;
     }
-//    public boolean addStudent(Student student) {
-//    System.out.println("📝 Adding student: " + student.getName());
-//    
-//    PersonRecord personRecord = new PersonRecord(
-//        student.getName(),
-//        student.getEmail(),
-//        student.getPhone(),
-//        student.getAddress(),
-//        student.getBirthDate(),
-//        "STUDENT"
-//    );
-//    
-//    PersonDAO personDAO = new PersonDAO();
-//    PersonRecord addedPerson = personDAO.addPerson(personRecord);
-//    
-//    if (addedPerson == null) {
-//        System.err.println("❌ Failed to add person record");
-//        return false;
-//    }
-//    
-//    // الحصول على الـ ID من الشخص المضاف
-//    int personId = addedPerson.getId();
-//    student.setId(personId);
-//    System.out.println("✅ Person added with ID: " + personId);
-//    
-//    String sql = "INSERT INTO students (person_id, student_id, grade, enrollment_date) VALUES (?, ?, ?, ?)";
-//    
-//    try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-//        pstmt.setInt(1, personId);
-//        pstmt.setString(2, student.getStudentId());
-//        pstmt.setString(3, student.getGrade());
-//        pstmt.setString(4, student.getEnrollmentDate().toString());
-//        
-//        int result = pstmt.executeUpdate();
-//        System.out.println("✅ Student added: " + student.getStudentId() + " (Person ID: " + personId + ")");
-//        return result > 0;
-//        
-//    } catch (SQLException e) {
-//        System.err.println("❌ Error adding student: " + e.getMessage());
-//        // Rollback: delete person if student fails
-//        personDAO.deletePerson(personId);
-//    }
-//    return false;
-//}
-//    
-//    public Student getStudentById(int id) {
-//        String sql = "SELECT p.*, s.student_id, s.grade, s.enrollment_date " +
-//                    "FROM persons p " +
-//                    "JOIN students s ON p.id = s.person_id " +
-//                    "WHERE p.id = ? AND p.type = 'STUDENT'";
-//        
-//        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-//            pstmt.setInt(1, id);
-//            
-//            ResultSet rs = pstmt.executeQuery();
-//            
-//            if (rs.next()) {
-//                return createStudentFromResultSet(rs);
-//            }
-//        } catch (SQLException e) {
-//            System.err.println("❌ Error getting student: " + e.getMessage());
-//        }
-//        return null;
-//    }
+    
+    // ✅ الدالة المفقودة التي نضيفها الآن
+    public Student getStudentById(int id) {
+        String sql = "SELECT p.*, s.student_id, s.grade, s.enrollment_date " +
+                    "FROM persons p " +
+                    "JOIN students s ON p.id = s.person_id " +
+                    "WHERE p.id = ? AND p.type = 'STUDENT'";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return createStudentFromResultSet(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error getting student by ID: " + e.getMessage());
+        }
+        return null;
+    }
     
     public Student getStudentByStudentId(String studentId) {
         String sql = "SELECT p.*, s.student_id, s.grade, s.enrollment_date " +
