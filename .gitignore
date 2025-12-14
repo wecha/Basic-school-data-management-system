@@ -3,3 +3,4 @@ src/main/java/wessal/
 target/ 
 .nb-gradle/ 
 "system_report*.txt" 
+"system_report*.txt" 
