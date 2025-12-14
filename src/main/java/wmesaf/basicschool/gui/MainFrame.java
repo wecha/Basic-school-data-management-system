@@ -3,9 +3,12 @@ package wmesaf.basicschool.gui;
 import wmesaf.basicschool.model.Admin;
 import wmesaf.basicschool.dao.StudentDAO;
 import wmesaf.basicschool.dao.TeacherDAO;
+import wmesaf.basicschool.business.DashboardService;
+import wmesaf.basicschool.business.ReportService;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Map;
 
 public class MainFrame extends JFrame {
     private Admin currentAdmin;
@@ -13,6 +16,8 @@ public class MainFrame extends JFrame {
     private JLabel userInfoLabel;
     private StudentDAO studentDAO;
     private TeacherDAO teacherDAO;
+    private DashboardService dashboardService;
+    private ReportService reportService;
     
     // Colors
     private final Color PRIMARY_COLOR = new Color(41, 128, 185);
@@ -22,41 +27,38 @@ public class MainFrame extends JFrame {
     // إحصائيات حقيقية
     private int totalStudents = 0;
     private int totalTeachers = 0;
-    private int activeCourses = 0; // مؤقتاً
-    private String attendanceRate = "0%";
+    private double totalSalary = 0;
+    private String systemStatus = "Unknown";
+    private String databaseStatus = "Unknown";
+    private double uptime = 0;
     
-    // الكونستركتور المعدل
     public MainFrame(Admin admin) {
         this.currentAdmin = admin;
         this.studentDAO = new StudentDAO();
         this.teacherDAO = new TeacherDAO();
+        this.dashboardService = new DashboardService();
+        this.reportService = new ReportService();
         loadRealStatistics();
         initUI();
         setupFrame();
     }
     
     private void loadRealStatistics() {
-        // جلب الإحصائيات الحقيقية من قاعدة البيانات
-        totalStudents = studentDAO.countStudents();
-        totalTeachers = teacherDAO.countTeachers();
+        // ✅ استخدام DashboardService للحصول على الإحصائيات
+        Map<String, Object> stats = dashboardService.getDashboardStatistics();
         
-        // حساب نسبة الحضور (افتراضية)
-        if (totalStudents > 0) {
-            int presentStudents = (int) (totalStudents * 0.94); // 94% افتراضياً
-            attendanceRate = presentStudents + "/" + totalStudents + " (" + 
-                           String.format("%.0f", (presentStudents * 100.0 / totalStudents)) + "%)";
-        } else {
-            attendanceRate = "0%";
-        }
+        totalStudents = (int) stats.get("totalStudents");
+        totalTeachers = (int) stats.get("totalTeachers");
+        totalSalary = (double) stats.get("totalSalary");
+        systemStatus = (String) stats.get("systemStatus");
+        databaseStatus = (String) stats.get("databaseStatus");
         
-        // عدد الكورسات النشطة (افتراضي)
-        activeCourses = totalTeachers * 2; // كل معلم يدرّس كورسين في المتوسط
-        
-        System.out.println("📊 Real Statistics Loaded:");
+        System.out.println("📊 Real Statistics Loaded from DashboardService:");
         System.out.println("   Students: " + totalStudents);
         System.out.println("   Teachers: " + totalTeachers);
-        System.out.println("   Courses: " + activeCourses);
-        System.out.println("   Attendance: " + attendanceRate);
+        System.out.println("   Total Salary: $" + totalSalary);
+        System.out.println("   System Status: " + systemStatus);
+        System.out.println("   Database Status: " + databaseStatus);
     }
     
     private void initUI() {
@@ -74,7 +76,7 @@ public class MainFrame extends JFrame {
         welcomeLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
         welcomeLabel.setForeground(Color.WHITE);
         
-        // User info - معدل ليتعامل مع حالة null
+        // User info
         String adminName = (currentAdmin != null) ? currentAdmin.getFullName() : "System Administrator";
         userInfoLabel = new JLabel("Admin: " + adminName);
         userInfoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -133,33 +135,31 @@ public class MainFrame extends JFrame {
         contentPanel.setBackground(CONTENT_COLOR);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
-        // Welcome card - معدل لعرض اسم المدير والإحصائيات
+        // Welcome card
         String welcomeMessage = (currentAdmin != null) ? 
             "Welcome to School Management System\n\nYou are logged in as: " + currentAdmin.getFullName() + 
             "\n\nReal-time Statistics:\n" +
-            "• Students: " + totalStudents + " (from database)\n" +
-            "• Teachers: " + totalTeachers + " (from database)\n" +
-            "• Courses: " + activeCourses + " (estimated)\n" +
-            "• Attendance: " + attendanceRate + " (today)" :
+            "• Students: " + totalStudents + "\n" +
+            "• Teachers: " + totalTeachers + "\n" +
+            "• Total Salary Expense: $" + String.format("%,.2f", totalSalary) + "\n" +
+            "• System Status: " + systemStatus + "\n" +
+            "• Database: " + databaseStatus :
             "Welcome to School Management System\n\nYou are logged in as: System Administrator" +
             "\n\nUse the sidebar menu to navigate through different sections.";
         
         JPanel welcomeCard = createCard("📊 School Management Dashboard",
-            welcomeMessage +
-            "\n\nLast Updated: " + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) +
-            "\n\nClick 'Refresh Dashboard' to update statistics.");
+            welcomeMessage + "\n\nLast Updated: " + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         
         // Statistics panel مع إحصائيات حقيقية
         JPanel statsPanel = new JPanel(new GridLayout(2, 2, 15, 15));
         statsPanel.setBackground(CONTENT_COLOR);
         
-        // استخدام الإحصائيات الحقيقية
-        String[] stats = {"Total Students", "Total Teachers", "Active Courses", "Today's Attendance"};
+        String[] stats = {"Total Students", "Total Teachers", "Total Salary", "System Status"};
         String[] values = {
             String.valueOf(totalStudents),
             String.valueOf(totalTeachers),
-            String.valueOf(activeCourses),
-            attendanceRate
+            "$" + String.format("%,.2f", totalSalary),
+            systemStatus + " / " + databaseStatus
         };
         Color[] colors = {
             new Color(52, 152, 219),    // Blue
@@ -219,7 +219,7 @@ public class MainFrame extends JFrame {
             }
         });
         
-        // Action listener - الآن يفتح نوافذ حقيقية
+        // Action listener
         button.addActionListener(e -> handleMenuAction(text));
         
         return button;
@@ -242,7 +242,7 @@ public class MainFrame extends JFrame {
                 openCourseManagement();
                 break;
             case "📈 Reports":
-                showReports();
+                showEnhancedReports();
                 break;
             case "⚙️ Settings":
                 showSettings();
@@ -269,8 +269,9 @@ public class MainFrame extends JFrame {
             "Updated Statistics:\n" +
             "• Students: " + totalStudents + "\n" +
             "• Teachers: " + totalTeachers + "\n" +
-            "• Courses: " + activeCourses + "\n" +
-            "• Attendance: " + attendanceRate,
+            "• Total Salary: $" + String.format("%,.2f", totalSalary) + "\n" +
+            "• System: " + systemStatus + "\n" +
+            "• Database: " + databaseStatus,
             "Dashboard Updated",
             JOptionPane.INFORMATION_MESSAGE);
     }
@@ -321,36 +322,93 @@ public class MainFrame extends JFrame {
         });
     }
     
-    private void showReports() {
-        // تقرير بالإحصائيات الحقيقية
-        StringBuilder report = new StringBuilder();
-        report.append("📊 SCHOOL MANAGEMENT SYSTEM REPORT\n");
-        report.append("===================================\n\n");
-        report.append("Database Statistics:\n");
-        report.append("• Total Students: ").append(totalStudents).append("\n");
-        report.append("• Total Teachers: ").append(totalTeachers).append("\n");
-        report.append("• Total Persons: ").append(totalStudents + totalTeachers).append("\n");
-        report.append("• Active Courses: ").append(activeCourses).append("\n");
-        report.append("• Today's Attendance: ").append(attendanceRate).append("\n\n");
-        
-        report.append("System Status:\n");
-        report.append("• Database Connection: ACTIVE ✓\n");
-        report.append("• User Authentication: WORKING ✓\n");
-        report.append("• Student Management: OPERATIONAL ✓\n");
-        report.append("• Teacher Management: OPERATIONAL ✓\n");
-        report.append("• Report Generation: WORKING ✓\n\n");
-        
-        report.append("Report Generated: ").append(java.time.LocalDateTime.now().format(
-            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        
-        JTextArea textArea = new JTextArea(report.toString());
-        textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        textArea.setEditable(false);
-        
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        scrollPane.setPreferredSize(new Dimension(500, 400));
-        
-        JOptionPane.showMessageDialog(this, scrollPane, "System Report", JOptionPane.INFORMATION_MESSAGE);
+    /**
+     * ✅ الدالة المعدلة: عرض التقارير المحسنة
+     */
+    private void showEnhancedReports() {
+        try {
+            // ✅ استخدام ReportService الجديد
+            JTabbedPane tabbedPane = new JTabbedPane();
+            
+            // التقرير 1: Student Statistics
+            String studentReport = reportService.generateStudentStatisticsReport();
+            JTextArea studentReportArea = new JTextArea(studentReport);
+            studentReportArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+            studentReportArea.setEditable(false);
+            JScrollPane studentScroll = new JScrollPane(studentReportArea);
+            tabbedPane.addTab("Student Statistics", studentScroll);
+            
+            // التقرير 2: Teacher Statistics
+            String teacherReport = reportService.generateTeacherStatisticsReport();
+            JTextArea teacherReportArea = new JTextArea(teacherReport);
+            teacherReportArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+            teacherReportArea.setEditable(false);
+            JScrollPane teacherScroll = new JScrollPane(teacherReportArea);
+            tabbedPane.addTab("Teacher Statistics", teacherScroll);
+            
+            // التقرير 3: System Summary
+            String systemReport = reportService.generateSystemSummaryReport();
+            JTextArea systemReportArea = new JTextArea(systemReport);
+            systemReportArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+            systemReportArea.setEditable(false);
+            JScrollPane systemScroll = new JScrollPane(systemReportArea);
+            tabbedPane.addTab("System Summary", systemScroll);
+            
+            // زر التصدير
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            JButton exportButton = new JButton("Export Selected Report");
+            exportButton.addActionListener(e -> {
+                int selectedTab = tabbedPane.getSelectedIndex();
+                String report = "";
+                String filename = "";
+                
+                switch (selectedTab) {
+                    case 0:
+                        report = reportService.generateStudentStatisticsReport();
+                        filename = "student_report_" + java.time.LocalDate.now() + ".txt";
+                        break;
+                    case 1:
+                        report = reportService.generateTeacherStatisticsReport();
+                        filename = "teacher_report_" + java.time.LocalDate.now() + ".txt";
+                        break;
+                    case 2:
+                        report = reportService.generateSystemSummaryReport();
+                        filename = "system_report_" + java.time.LocalDate.now() + ".txt";
+                        break;
+                }
+                
+                try {
+                    java.nio.file.Files.write(
+                        java.nio.file.Paths.get(filename),
+                        report.getBytes()
+                    );
+                    JOptionPane.showMessageDialog(this,
+                        "Report exported successfully to:\n" + filename,
+                        "Export Successful",
+                        JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this,
+                        "Error exporting report: " + ex.getMessage(),
+                        "Export Failed",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            
+            buttonPanel.add(exportButton);
+            
+            JPanel mainPanel = new JPanel(new BorderLayout());
+            mainPanel.add(tabbedPane, BorderLayout.CENTER);
+            mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+            
+            JOptionPane.showMessageDialog(this, mainPanel, "System Reports", 
+                JOptionPane.PLAIN_MESSAGE);
+                
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Error generating reports: " + e.getMessage(),
+                "Report Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void showSettings() {
@@ -360,7 +418,7 @@ public class MainFrame extends JFrame {
             "• Database: SQLite (school_management.db)\n" +
             "• Students in DB: " + totalStudents + "\n" +
             "• Teachers in DB: " + totalTeachers + "\n" +
-            "• System Version: Sprint 2.0\n" +
+            "• System Version: Sprint 3.0\n" +
             "• Last Update: " + java.time.LocalDate.now() + "\n\n" +
             "Settings are loaded from the database.",
             "System Settings",
@@ -414,8 +472,8 @@ public class MainFrame extends JFrame {
         switch (title) {
             case "Total Students": icon = "👨‍🎓 "; break;
             case "Total Teachers": icon = "👩‍🏫 "; break;
-            case "Active Courses": icon = "📚 "; break;
-            case "Today's Attendance": icon = "📈 "; break;
+            case "Total Salary": icon = "💰 "; break;
+            case "System Status": icon = "🔧 "; break;
         }
         titleLabel.setText(icon + title);
         
@@ -442,12 +500,8 @@ public class MainFrame extends JFrame {
         setSize(1100, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        
-        // Center on screen
-        setLocationRelativeTo(null);
     }
     
-    // دالة main للاختبار
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             // إنشاء admin افتراضي للاختبار
