@@ -30,7 +30,6 @@ public class MainFrame extends JFrame {
     private double totalSalary = 0;
     private String systemStatus = "Unknown";
     private String databaseStatus = "Unknown";
-    private double uptime = 0;
     
     public MainFrame(Admin admin) {
         this.currentAdmin = admin;
@@ -44,7 +43,6 @@ public class MainFrame extends JFrame {
     }
     
     private void loadRealStatistics() {
-        // ✅ استخدام DashboardService للحصول على الإحصائيات
         Map<String, Object> stats = dashboardService.getDashboardStatistics();
         
         totalStudents = (int) stats.get("totalStudents");
@@ -53,7 +51,7 @@ public class MainFrame extends JFrame {
         systemStatus = (String) stats.get("systemStatus");
         databaseStatus = (String) stats.get("databaseStatus");
         
-        System.out.println("📊 Real Statistics Loaded from DashboardService:");
+        System.out.println("Real Statistics Loaded from DashboardService:");
         System.out.println("   Students: " + totalStudents);
         System.out.println("   Teachers: " + totalTeachers);
         System.out.println("   Total Salary: $" + totalSalary);
@@ -113,14 +111,14 @@ public class MainFrame extends JFrame {
         sidebar.add(sidebarTitle);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         
-        // Menu buttons
+        // Menu buttons - بدون رموز تعبيرية
         String[] menuItems = {
-            "📊 Dashboard",
-            "👨‍🎓 Student Management",
-            "👩‍🏫 Teacher Management",
-            "📚 Course Management",
-            "📈 Reports",
-            "⚙️ Settings"
+            "Dashboard",
+            "Student Management",
+            "Teacher Management",
+            "Course Management",
+            "Reports",
+            "Settings"
         };
         
         for (String item : menuItems) {
@@ -147,7 +145,7 @@ public class MainFrame extends JFrame {
             "Welcome to School Management System\n\nYou are logged in as: System Administrator" +
             "\n\nUse the sidebar menu to navigate through different sections.";
         
-        JPanel welcomeCard = createCard("📊 School Management Dashboard",
+        JPanel welcomeCard = createCard("School Management Dashboard",
             welcomeMessage + "\n\nLast Updated: " + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         
         // Statistics panel مع إحصائيات حقيقية
@@ -174,7 +172,7 @@ public class MainFrame extends JFrame {
         
         // زر تحديث Dashboard
         JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton refreshButton = new JButton("🔄 Refresh Dashboard");
+        JButton refreshButton = new JButton("Refresh Dashboard");
         refreshButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
         refreshButton.setBackground(new Color(52, 152, 219));
         refreshButton.setForeground(Color.WHITE);
@@ -229,22 +227,22 @@ public class MainFrame extends JFrame {
         System.out.println("Menu clicked: " + menuItem);
         
         switch (menuItem) {
-            case "📊 Dashboard":
+            case "Dashboard":
                 refreshDashboard();
                 break;
-            case "👨‍🎓 Student Management":
+            case "Student Management":
                 openStudentManagement();
                 break;
-            case "👩‍🏫 Teacher Management":
+            case "Teacher Management":
                 openTeacherManagement();
                 break;
-            case "📚 Course Management":
+            case "Course Management":
                 openCourseManagement();
                 break;
-            case "📈 Reports":
+            case "Reports":
                 showEnhancedReports();
                 break;
-            case "⚙️ Settings":
+            case "Settings":
                 showSettings();
                 break;
             default:
@@ -262,7 +260,7 @@ public class MainFrame extends JFrame {
         revalidate();
         repaint();
         
-        System.out.println("🔄 Dashboard refreshed with real statistics");
+        System.out.println("Dashboard refreshed with real statistics");
         
         JOptionPane.showMessageDialog(this,
             "Dashboard refreshed with real-time data!\n\n" +
@@ -281,7 +279,7 @@ public class MainFrame extends JFrame {
             try {
                 StudentManagementFrame studentFrame = new StudentManagementFrame();
                 studentFrame.setVisible(true);
-                System.out.println("✅ Student Management opened successfully");
+                System.out.println("Student Management opened successfully");
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this,
                     "Error opening Student Management:\n" + e.getMessage(),
@@ -296,7 +294,7 @@ public class MainFrame extends JFrame {
             try {
                 TeacherManagementFrame teacherFrame = new TeacherManagementFrame();
                 teacherFrame.setVisible(true);
-                System.out.println("✅ Teacher Management opened successfully");
+                System.out.println("Teacher Management opened successfully");
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this,
                     "Error opening Teacher Management:\n" + e.getMessage(),
@@ -306,43 +304,26 @@ public class MainFrame extends JFrame {
         });
     }
     
-// وإضافة دالة openCourseManagement():
-private void openCourseManagement() {
-    SwingUtilities.invokeLater(() -> {
-        try {
-            CourseManagementFrame courseFrame = new CourseManagementFrame();
-            courseFrame.setVisible(true);
-            System.out.println("✅ Course Management opened successfully");
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                "Error opening Course Management:\n" + e.getMessage(),
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
-        }
-    });
-}
-//    private void openCourseManagement() {
-//        SwingUtilities.invokeLater(() -> {
-//            JOptionPane.showMessageDialog(this,
-//                "Course Management Module\n\n" +
-//                "This module is planned for Sprint 3.\n" +
-//                "It will include:\n" +
-//                "• Course creation and management\n" +
-//                "• Teacher assignment to courses\n" +
-//                "• Student enrollment\n" +
-//                "• Course scheduling\n" +
-//                "• Grade tracking",
-//                "Course Management - Coming Soon",
-//                JOptionPane.INFORMATION_MESSAGE);
-//        });
-//    }
+    private void openCourseManagement() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                CourseManagementFrame courseFrame = new CourseManagementFrame();
+                courseFrame.setVisible(true);
+                System.out.println("Course Management opened successfully");
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this,
+                    "Error opening Course Management:\n" + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    }
     
     /**
-     * ✅ الدالة المعدلة: عرض التقارير المحسنة
+     * عرض التقارير المحسنة
      */
     private void showEnhancedReports() {
         try {
-            // ✅ استخدام ReportService الجديد
             JTabbedPane tabbedPane = new JTabbedPane();
             
             // التقرير 1: Student Statistics
@@ -361,7 +342,15 @@ private void openCourseManagement() {
             JScrollPane teacherScroll = new JScrollPane(teacherReportArea);
             tabbedPane.addTab("Teacher Statistics", teacherScroll);
             
-            // التقرير 3: System Summary
+            // التقرير 3: Course Statistics
+            String courseReport = reportService.generateCourseStatisticsReport();
+            JTextArea courseReportArea = new JTextArea(courseReport);
+            courseReportArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+            courseReportArea.setEditable(false);
+            JScrollPane courseScroll = new JScrollPane(courseReportArea);
+            tabbedPane.addTab("Course Statistics", courseScroll);
+            
+            // التقرير 4: System Summary
             String systemReport = reportService.generateSystemSummaryReport();
             JTextArea systemReportArea = new JTextArea(systemReport);
             systemReportArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
@@ -372,6 +361,9 @@ private void openCourseManagement() {
             // زر التصدير
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             JButton exportButton = new JButton("Export Selected Report");
+            exportButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            exportButton.setBackground(new Color(46, 204, 113));
+            exportButton.setForeground(Color.WHITE);
             exportButton.addActionListener(e -> {
                 int selectedTab = tabbedPane.getSelectedIndex();
                 String report = "";
@@ -387,6 +379,10 @@ private void openCourseManagement() {
                         filename = "teacher_report_" + java.time.LocalDate.now() + ".txt";
                         break;
                     case 2:
+                        report = reportService.generateCourseStatisticsReport();
+                        filename = "course_report_" + java.time.LocalDate.now() + ".txt";
+                        break;
+                    case 3:
                         report = reportService.generateSystemSummaryReport();
                         filename = "system_report_" + java.time.LocalDate.now() + ".txt";
                         break;
@@ -415,12 +411,32 @@ private void openCourseManagement() {
             mainPanel.add(tabbedPane, BorderLayout.CENTER);
             mainPanel.add(buttonPanel, BorderLayout.SOUTH);
             
-            JOptionPane.showMessageDialog(this, mainPanel, "System Reports", 
-                JOptionPane.PLAIN_MESSAGE);
+            JDialog reportDialog = new JDialog(this, "System Reports", true);
+            reportDialog.setLayout(new BorderLayout());
+            reportDialog.setSize(800, 600);
+            reportDialog.setLocationRelativeTo(this);
+            reportDialog.add(mainPanel, BorderLayout.CENTER);
+            
+            // زر الإغلاق
+            JButton closeButton = new JButton("Close");
+            closeButton.setBackground(new Color(231, 76, 60));
+            closeButton.setForeground(Color.WHITE);
+            closeButton.addActionListener(e -> reportDialog.dispose());
+            
+            JPanel closePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            closePanel.add(closeButton);
+            
+            reportDialog.add(closePanel, BorderLayout.SOUTH);
+            reportDialog.setVisible(true);
                 
         } catch (Exception e) {
+            String errorMessage = "Error generating reports: " + e.getMessage();
+            System.err.println(errorMessage);
+            
             JOptionPane.showMessageDialog(this,
-                "Error generating reports: " + e.getMessage(),
+                "Could not generate reports.\n\n" +
+                "Error: " + e.getMessage() + "\n\n" +
+                "Please check if database is properly initialized.",
                 "Report Error",
                 JOptionPane.ERROR_MESSAGE);
         }
@@ -481,16 +497,6 @@ private void openCourseManagement() {
         JLabel titleLabel = new JLabel(title, SwingConstants.CENTER);
         titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         titleLabel.setForeground(new Color(120, 120, 120));
-        
-        // إضافة رمز صغير
-        String icon = "";
-        switch (title) {
-            case "Total Students": icon = "👨‍🎓 "; break;
-            case "Total Teachers": icon = "👩‍🏫 "; break;
-            case "Total Salary": icon = "💰 "; break;
-            case "System Status": icon = "🔧 "; break;
-        }
-        titleLabel.setText(icon + title);
         
         card.add(valueLabel, BorderLayout.CENTER);
         card.add(titleLabel, BorderLayout.SOUTH);
