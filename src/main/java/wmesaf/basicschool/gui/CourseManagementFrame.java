@@ -14,6 +14,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import wmesaf.basicschool.database.DatabaseConnection;
 
 public class CourseManagementFrame extends JFrame {
     private CourseService courseService;
@@ -874,8 +879,49 @@ public class CourseManagementFrame extends JFrame {
     
     String courseCode = (String) tableModel.getValueAt(selectedRow, 0);
     
-    // ✅ الحل: إعادة تحميل المادة من قاعدة البيانات أولاً
-    Course course = courseService.getCourseByCode(courseCode);
+    // الحصول على المادة
+    Course course = getCourseWithEnrollmentsDirect(courseCode);
+    // DEBUG: التحقق المباشر من قاعدة البيانات
+System.out.println("🚨 DEBUG START ==================================");
+System.out.println("Course: " + course.getCourseCode() + " (ID: " + course.getId() + ")");
+System.out.println("Enrollment from course object: " + course.getCurrentEnrollment());
+
+// فحص مباشر لقاعدة البيانات
+Connection conn = null;
+PreparedStatement pstmt = null;
+ResultSet rs = null;
+try {
+    conn = DatabaseConnection.getInstance().getConnection();
+    String checkSql = "SELECT student_id FROM course_enrollments WHERE course_id = ?";
+    pstmt = conn.prepareStatement(checkSql);
+    pstmt.setInt(1, course.getId());
+    rs = pstmt.executeQuery();
+    
+    List<String> studentIds = new ArrayList<>();
+    while (rs.next()) {
+        studentIds.add(rs.getString("student_id"));
+    }
+    
+    System.out.println("Direct DB query found " + studentIds.size() + " students:");
+    for (String id : studentIds) {
+        System.out.println("   - " + id);
+    }
+    
+    // التحقق من studentService
+    if (!studentIds.isEmpty()) {
+        System.out.println("\nTesting studentService for first student: " + studentIds.get(0));
+        Student testStudent = studentService.getStudentByStudentId(studentIds.get(0));
+        System.out.println("StudentService result: " + (testStudent != null ? 
+            "Found: " + testStudent.getName() : "NULL"));
+    }
+    
+} catch (Exception e) {
+    System.err.println("DEBUG error: " + e.getMessage());
+} finally {
+    try { if (rs != null) rs.close(); } catch (Exception e) {}
+    try { if (pstmt != null) pstmt.close(); } catch (Exception e) {}
+}
+System.out.println("🚨 DEBUG END ====================================");
     if (course == null) {
         JOptionPane.showMessageDialog(this,
             "Course not found in database.",
@@ -883,9 +929,6 @@ public class CourseManagementFrame extends JFrame {
             JOptionPane.ERROR_MESSAGE);
         return;
     }
-    
-    // ✅ التحديث الحاسم: إعادة تحميل الطلاب المسجلين من قاعدة البيانات
-    reloadCourseEnrollments(course);
     
     JDialog dialog = new JDialog(this, "Manage Students - " + course.getCourseCode(), true);
     dialog.setLayout(new BorderLayout());
@@ -926,8 +969,8 @@ public class CourseManagementFrame extends JFrame {
     JTable enrolledTable = new JTable(enrolledModel);
     enrolledTable.setRowHeight(25);
     
-    // ✅ تحميل الطلاب المسجلين
-    loadEnrolledStudentsToTable(enrolledModel, course);
+    // تحميل الطلاب المسجلين
+    refreshEnrolledStudentsTable(enrolledModel, course);
     
     JScrollPane enrolledScroll = new JScrollPane(enrolledTable);
     enrolledScroll.setBorder(BorderFactory.createTitledBorder(
@@ -948,7 +991,6 @@ public class CourseManagementFrame extends JFrame {
     refreshButton.setForeground(Color.WHITE);
     
     enrollButton.addActionListener(e -> {
-        // ✅ التحقق من امتلاء المادة
         if (course.isFull()) {
             JOptionPane.showMessageDialog(dialog,
                 "Course is full! Cannot enroll more students.\n" +
@@ -958,24 +1000,8 @@ public class CourseManagementFrame extends JFrame {
             return;
         }
         
-        // ✅ الحصول على جميع الطلاب
-        List<Student> allStudents = studentService.getAllStudents();
-        List<Student> enrolledStudents = course.getEnrolledStudents();
-        
-        // ✅ تصفية الطلاب غير المسجلين
-        List<Student> availableStudents = new ArrayList<>();
-        for (Student student : allStudents) {
-            boolean isEnrolled = false;
-            for (Student enrolled : enrolledStudents) {
-                if (enrolled.getStudentId().equals(student.getStudentId())) {
-                    isEnrolled = true;
-                    break;
-                }
-            }
-            if (!isEnrolled) {
-                availableStudents.add(student);
-            }
-        }
+        // الحصول على الطلاب المتاحين
+        List<Student> availableStudents = getAvailableStudentsForCourse(course.getId());
         
         if (availableStudents.isEmpty()) {
             JOptionPane.showMessageDialog(dialog,
@@ -985,7 +1011,6 @@ public class CourseManagementFrame extends JFrame {
             return;
         }
         
-        // ✅ عرض قائمة الطلاب المتاحين
         String[] studentOptions = new String[availableStudents.size()];
         for (int i = 0; i < availableStudents.size(); i++) {
             Student s = availableStudents.get(i);
@@ -1006,25 +1031,27 @@ public class CourseManagementFrame extends JFrame {
             String studentId = selectedStudent.split(" - ")[0];
             
             try {
-                // ✅ تسجيل الطالب في قاعدة البيانات
-                boolean success = courseService.enrollStudentInCourse(course.getId(), studentId);
+                // تسجيل الطالب
+                boolean success = enrollStudentDirect(course.getId(), studentId);
                 
                 if (success) {
-                    // ✅ التحديث الحاسم: إعادة تحميل بيانات المادة من قاعدة البيانات
-                    reloadCourseEnrollments(course);
+                    // إعادة تحميل البيانات
+                    Course updatedCourse = getCourseWithEnrollmentsDirect(courseCode);
+                    if (updatedCourse != null) {
+                        course.getEnrolledStudents().clear();
+                        course.getEnrolledStudents().addAll(updatedCourse.getEnrolledStudents());
+                    }
                     
-                    // ✅ تحديث الجدول
-                    loadEnrolledStudentsToTable(enrolledModel, course);
-                    
-                    // ✅ تحديث لوحة المعلومات
+                    // تحديث الواجهة
+                    refreshEnrolledStudentsTable(enrolledModel, course);
                     enrollmentValue.setText(course.getCurrentEnrollment() + "/" + course.getMaxStudents());
                     availableValue.setText(String.valueOf(course.getAvailableSeats()));
                     enrolledScroll.setBorder(BorderFactory.createTitledBorder(
                         "Enrolled Students (" + course.getCurrentEnrollment() + ")"
                     ));
                     
-                    // ✅ تحديث الجدول الرئيسي في النافذة الرئيسية
-                    updateMainTableEnrollment(courseCode, course.getCurrentEnrollment());
+                    // تحديث الجدول الرئيسي
+                    updateMainCourseTable(courseCode, course.getCurrentEnrollment());
                     
                     JOptionPane.showMessageDialog(dialog,
                         "✅ Student enrolled successfully!\n\n" +
@@ -1032,11 +1059,6 @@ public class CourseManagementFrame extends JFrame {
                         "New enrollment: " + course.getCurrentEnrollment() + "/" + course.getMaxStudents(),
                         "Success",
                         JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(dialog,
-                        "❌ Failed to enroll student.",
-                        "Enrollment Failed",
-                        JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(dialog,
@@ -1069,35 +1091,32 @@ public class CourseManagementFrame extends JFrame {
         
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                // ✅ إزالة الطالب من قاعدة البيانات
-                boolean success = courseService.unenrollStudentFromCourse(course.getId(), studentId);
+                // إزالة الطالب
+                boolean success = unenrollStudentDirect(course.getId(), studentId);
                 
                 if (success) {
-                    // ✅ التحديث الحاسم: إعادة تحميل بيانات المادة من قاعدة البيانات
-                    reloadCourseEnrollments(course);
+                    // إعادة تحميل البيانات
+                    Course updatedCourse = getCourseWithEnrollmentsDirect(courseCode);
+                    if (updatedCourse != null) {
+                        course.getEnrolledStudents().clear();
+                        course.getEnrolledStudents().addAll(updatedCourse.getEnrolledStudents());
+                    }
                     
-                    // ✅ تحديث الجدول
-                    loadEnrolledStudentsToTable(enrolledModel, course);
-                    
-                    // ✅ تحديث لوحة المعلومات
+                    // تحديث الواجهة
+                    refreshEnrolledStudentsTable(enrolledModel, course);
                     enrollmentValue.setText(course.getCurrentEnrollment() + "/" + course.getMaxStudents());
                     availableValue.setText(String.valueOf(course.getAvailableSeats()));
                     enrolledScroll.setBorder(BorderFactory.createTitledBorder(
                         "Enrolled Students (" + course.getCurrentEnrollment() + ")"
                     ));
                     
-                    // ✅ تحديث الجدول الرئيسي في النافذة الرئيسية
-                    updateMainTableEnrollment(courseCode, course.getCurrentEnrollment());
+                    // تحديث الجدول الرئيسي
+                    updateMainCourseTable(courseCode, course.getCurrentEnrollment());
                     
                     JOptionPane.showMessageDialog(dialog,
                         "✅ Student removed from course.",
                         "Success",
                         JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(dialog,
-                        "❌ Failed to remove student.",
-                        "Removal Failed",
-                        JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(dialog,
@@ -1109,18 +1128,21 @@ public class CourseManagementFrame extends JFrame {
     });
     
     refreshButton.addActionListener(e -> {
-        // ✅ إعادة تحميل البيانات من قاعدة البيانات
-        reloadCourseEnrollments(course);
-        loadEnrolledStudentsToTable(enrolledModel, course);
-        enrollmentValue.setText(course.getCurrentEnrollment() + "/" + course.getMaxStudents());
-        availableValue.setText(String.valueOf(course.getAvailableSeats()));
-        enrolledScroll.setBorder(BorderFactory.createTitledBorder(
-            "Enrolled Students (" + course.getCurrentEnrollment() + ")"
-        ));
-        JOptionPane.showMessageDialog(dialog,
-            "✅ List refreshed successfully!",
-            "Refresh Complete",
-            JOptionPane.INFORMATION_MESSAGE);
+        Course updatedCourse = getCourseWithEnrollmentsDirect(courseCode);
+        if (updatedCourse != null) {
+            course.getEnrolledStudents().clear();
+            course.getEnrolledStudents().addAll(updatedCourse.getEnrolledStudents());
+            refreshEnrolledStudentsTable(enrolledModel, course);
+            enrollmentValue.setText(course.getCurrentEnrollment() + "/" + course.getMaxStudents());
+            availableValue.setText(String.valueOf(course.getAvailableSeats()));
+            enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+                "Enrolled Students (" + course.getCurrentEnrollment() + ")"
+            ));
+            JOptionPane.showMessageDialog(dialog,
+                "✅ List refreshed successfully!",
+                "Refresh Complete",
+                JOptionPane.INFORMATION_MESSAGE);
+        }
     });
     
     actionPanel.add(enrollButton);
@@ -1132,7 +1154,7 @@ public class CourseManagementFrame extends JFrame {
     JButton closeButton = new JButton("Close");
     closeButton.addActionListener(e -> {
         dialog.dispose();
-        loadCourses(); // تحديث الجدول الرئيسي عند الإغلاق
+        loadCourses();
     });
     closePanel.add(closeButton);
     
@@ -1147,23 +1169,297 @@ public class CourseManagementFrame extends JFrame {
     dialog.setVisible(true);
 }
 
-// ✅ الدوال المساعدة المطلوبة - أضف هذه الدوال في نفس الكلاس CourseManagementFrame:
+// ==================== الدوال المساعدة ====================
 
 /**
- * إعادة تحميل الطلاب المسجلين من قاعدة البيانات
+ * الحصول على المادة مع الطلاب
  */
-private void reloadCourseEnrollments(Course course) {
-    Course updatedCourse = courseService.getCourseById(course.getId());
-    if (updatedCourse != null) {
+private Course getCourseWithEnrollmentsDirect(String courseCode) {
+    Course course = courseService.getCourseByCode(courseCode);
+    if (course != null) {
+        // الحصول على الطلاب المسجلين مباشرة
+        List<Student> enrolledStudents = getEnrolledStudentsDirect(course.getId());
         course.getEnrolledStudents().clear();
-        course.getEnrolledStudents().addAll(updatedCourse.getEnrolledStudents());
+        course.getEnrolledStudents().addAll(enrolledStudents);
+    }
+    return course;
+}
+
+/**
+ * الحصول على الطلاب المسجلين مباشرة من قاعدة البيانات
+ */
+//private List<Student> getEnrolledStudentsDirect(int courseId) {
+//    List<Student> students = new ArrayList<>();
+//    
+//    Connection connection = null;
+//    PreparedStatement pstmt = null;
+//    ResultSet rs = null;
+//    
+//    try {
+//        connection = DatabaseConnection.getInstance().getConnection();
+//        String sql = "SELECT student_id FROM course_enrollments WHERE course_id = ?";
+//        pstmt = connection.prepareStatement(sql);
+//        pstmt.setInt(1, courseId);
+//        rs = pstmt.executeQuery();
+//        
+//        while (rs.next()) {
+//            String studentId = rs.getString("student_id");
+//            Student student = studentService.getStudentByStudentId(studentId);
+//            if (student != null) {
+//                students.add(student);
+//            }
+//        }
+//    } catch (SQLException e) {
+//        System.err.println("Error getting enrolled students: " + e.getMessage());
+//    } finally {
+//        try {
+//            if (rs != null) rs.close();
+//            if (pstmt != null) pstmt.close();
+//        } catch (SQLException e) {
+//            System.err.println("Error closing resources: " + e.getMessage());
+//        }
+//    }
+//    
+//    return students;
+//}
+/**
+ * نسخة محسنة ومختبرة لجلب الطلاب المسجدين
+ */
+private List<Student> getEnrolledStudentsDirect(int courseId) {
+    List<Student> students = new ArrayList<>();
+    
+    Connection connection = null;
+    PreparedStatement pstmt = null;
+    ResultSet rs = null;
+    
+    try {
+        connection = DatabaseConnection.getInstance().getConnection();
+        
+        // استعلام DEBUG: التحقق أولاً من وجود بيانات
+        String debugSql = "SELECT COUNT(*) as count FROM course_enrollments WHERE course_id = ?";
+        pstmt = connection.prepareStatement(debugSql);
+        pstmt.setInt(1, courseId);
+        rs = pstmt.executeQuery();
+        
+        if (rs.next()) {
+            int totalEnrollments = rs.getInt("count");
+            System.out.println("🔍 DEBUG: Total enrollments in database for course " + courseId + ": " + totalEnrollments);
+        }
+        
+        rs.close();
+        pstmt.close();
+        
+        // الآن جلب البيانات الكاملة
+        String sql = """
+            SELECT DISTINCT s.student_id
+            FROM course_enrollments ce
+            INNER JOIN students s ON ce.student_id = s.student_id
+            WHERE ce.course_id = ?
+            ORDER BY s.student_id
+            """;
+        
+        pstmt = connection.prepareStatement(sql);
+        pstmt.setInt(1, courseId);
+        rs = pstmt.executeQuery();
+        
+        int count = 0;
+        boolean studentServiceAvailable = true;
+        
+        while (rs.next()) {
+            count++;
+            String studentId = rs.getString("student_id");
+            System.out.println("   Student ID found: " + studentId);
+            
+            // المحاولة الأولى: استخدام studentService
+            Student student = null;
+            if (studentServiceAvailable) {
+                try {
+                    student = studentService.getStudentByStudentId(studentId);
+                    if (student == null) {
+                        System.err.println("   ❗ studentService returned null for ID: " + studentId);
+                    }
+                } catch (Exception e) {
+                    System.err.println("   ❌ studentService error for " + studentId + ": " + e.getMessage());
+                    studentServiceAvailable = false;
+                }
+            }
+            
+            // المحاولة الثانية: إنشاء Student يدوياً إذا فشلت الخدمة
+            if (student == null) {
+                student = createStudentManually(connection, studentId);
+            }
+            
+            if (student != null) {
+                students.add(student);
+                System.out.println("   ✅ Added: " + student.getName() + " (" + studentId + ")");
+            } else {
+                System.err.println("   ❌ Could not create Student object for: " + studentId);
+            }
+        }
+        
+        System.out.println("✅ FINAL: Successfully loaded " + students.size() + " out of " + count + " enrolled students");
+        
+    } catch (SQLException e) {
+        System.err.println("❌ SQL Error in getEnrolledStudentsDirect: " + e.getMessage());
+        e.printStackTrace();
+    } finally {
+        try {
+            if (rs != null) rs.close();
+            if (pstmt != null) pstmt.close();
+        } catch (SQLException e) {
+            System.err.println("Error closing resources: " + e.getMessage());
+        }
+    }
+    
+    return students;
+}
+
+/**
+ * دالة مساعدة لإنشاء Student يدوياً إذا فشلت الخدمة
+ */
+private Student createStudentManually(Connection connection, String studentId) {
+    PreparedStatement pstmt = null;
+    ResultSet rs = null;
+    
+    try {
+        String sql = """
+            SELECT s.student_id, p.name, p.email, p.phone, p.address, 
+                   p.birth_date, s.grade, s.enrollment_date
+            FROM students s
+            JOIN persons p ON s.person_id = p.id
+            WHERE s.student_id = ?
+            """;
+        
+        pstmt = connection.prepareStatement(sql);
+        pstmt.setString(1, studentId);
+        rs = pstmt.executeQuery();
+        
+        if (rs.next()) {
+            String name = rs.getString("name");String email = rs.getString("email") != null ? rs.getString("email") : "";
+            String phone = rs.getString("phone") != null ? rs.getString("phone") : "";
+            String address = rs.getString("address") != null ? rs.getString("address") : "";
+            String grade = rs.getString("grade") != null ? rs.getString("grade") : "";
+            
+            // التعامل مع التواريخ
+            LocalDate birthDate = LocalDate.now();
+            LocalDate enrollmentDate = LocalDate.now();
+            
+            try {
+                String birthDateStr = rs.getString("birth_date");
+                if (birthDateStr != null && !birthDateStr.trim().isEmpty()) {
+                    birthDate = LocalDate.parse(birthDateStr);
+                }
+                
+                String enrollmentDateStr = rs.getString("enrollment_date");
+                if (enrollmentDateStr != null && !enrollmentDateStr.trim().isEmpty()) {
+                    enrollmentDate = LocalDate.parse(enrollmentDateStr);
+                }
+            } catch (Exception e) {
+                System.err.println("   ⚠️ Date parsing error for " + studentId);
+            }
+            
+            // إنشاء Student باستخدام المنشئ الصحيح
+            return new Student(studentId, name, email, phone, birthDate, grade, address, enrollmentDate);
+        }
+    } catch (SQLException e) {
+        System.err.println("❌ Error creating student manually: " + e.getMessage());
+    } catch (Exception e) {
+        System.err.println("❌ Error in Student constructor for " + studentId + ": " + e.getMessage());
+    } finally {
+        try {
+            if (rs != null) rs.close();
+            if (pstmt != null) pstmt.close();
+        } catch (SQLException e) {
+            // تجاهل
+        }
+    }
+    
+    return null;
+}
+/**
+ * الحصول على الطلاب المتاحين
+ */
+private List<Student> getAvailableStudentsForCourse(int courseId) {
+    List<Student> allStudents = studentService.getAllStudents();
+    List<Student> enrolledStudents = getEnrolledStudentsDirect(courseId);
+    List<Student> availableStudents = new ArrayList<>();
+    
+    for (Student student : allStudents) {
+        boolean isEnrolled = false;
+        for (Student enrolled : enrolledStudents) {
+            if (enrolled.getStudentId().equals(student.getStudentId())) {
+                isEnrolled = true;
+                break;
+            }
+        }
+        if (!isEnrolled) {
+            availableStudents.add(student);
+        }
+    }
+    
+    return availableStudents;
+}
+
+/**
+ * تسجيل طالب مباشرة
+ */
+private boolean enrollStudentDirect(int courseId, String studentId) {
+    Connection connection = null;
+    PreparedStatement pstmt = null;
+    
+    try {
+        connection = DatabaseConnection.getInstance().getConnection();
+        String sql = "INSERT INTO course_enrollments (course_id, student_id) VALUES (?, ?)";
+        pstmt = connection.prepareStatement(sql);
+        pstmt.setInt(1, courseId);
+        pstmt.setString(2, studentId);
+        
+        int result = pstmt.executeUpdate();
+        return result > 0;
+    } catch (SQLException e) {
+        System.err.println("Error enrolling student: " + e.getMessage());
+        return false;
+    } finally {
+        try {
+            if (pstmt != null) pstmt.close();
+        } catch (SQLException e) {
+            System.err.println("Error closing statement: " + e.getMessage());
+        }
     }
 }
 
 /**
- * تحميل الطلاب المسجلين إلى الجدول
+ * إزالة طالب مباشرة
  */
-private void loadEnrolledStudentsToTable(DefaultTableModel model, Course course) {
+private boolean unenrollStudentDirect(int courseId, String studentId) {
+    Connection connection = null;
+    PreparedStatement pstmt = null;
+    
+    try {
+        connection = DatabaseConnection.getInstance().getConnection();
+        String sql = "DELETE FROM course_enrollments WHERE course_id = ? AND student_id = ?";
+        pstmt = connection.prepareStatement(sql);
+        pstmt.setInt(1, courseId);
+        pstmt.setString(2, studentId);
+        
+        int result = pstmt.executeUpdate();
+        return result > 0;
+    } catch (SQLException e) {
+        System.err.println("Error unenrolling student: " + e.getMessage());
+        return false;
+    } finally {
+        try {
+            if (pstmt != null) pstmt.close();
+        } catch (SQLException e) {
+            System.err.println("Error closing statement: " + e.getMessage());
+        }
+    }
+}
+
+/**
+ * تحديث جدول الطلاب
+ */
+private void refreshEnrolledStudentsTable(DefaultTableModel model, Course course) {
     model.setRowCount(0);
     for (Student student : course.getEnrolledStudents()) {
         model.addRow(new Object[]{
@@ -1178,7 +1474,7 @@ private void loadEnrolledStudentsToTable(DefaultTableModel model, Course course)
 /**
  * تحديث الجدول الرئيسي
  */
-private void updateMainTableEnrollment(String courseCode, int currentEnrollment) {
+private void updateMainCourseTable(String courseCode, int currentEnrollment) {
     for (int i = 0; i < tableModel.getRowCount(); i++) {
         if (tableModel.getValueAt(i, 0).equals(courseCode)) {
             Course course = courseService.getCourseByCode(courseCode);
