@@ -19,6 +19,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import wmesaf.basicschool.database.DatabaseConnection;
+import java.lang.reflect.Field;
 
 public class CourseManagementFrame extends JFrame {
     private CourseService courseService;
@@ -536,8 +537,8 @@ public class CourseManagementFrame extends JFrame {
         
         System.out.println("\n=== OPENING MANAGE STUDENTS FOR: " + courseCode + " ===");
         
-        // الحصول على المادة مع الطلاب
-        Course course = getCourseWithEnrollmentsDirect(courseCode);
+        // الحصول على المادة مع الطلاب - باستخدام الطريقة الجديدة
+        Course course = createFreshCourseWithEnrollments(courseCode);
         if (course == null) {
             JOptionPane.showMessageDialog(this,
                 "Course not found in database.",
@@ -596,7 +597,7 @@ public class CourseManagementFrame extends JFrame {
         enrolledTable.getTableHeader().setForeground(Color.WHITE);
         
         // تحميل البيانات فوراً
-        System.out.println("Loading table with " + course.getEnrolledStudents().size() + " students...");
+        System.out.println("📊 Loading table with " + course.getEnrolledStudents().size() + " students...");
         refreshEnrolledStudentsTable(enrolledModel, course);
         
         JScrollPane enrolledScroll = new JScrollPane(enrolledTable);
@@ -662,10 +663,10 @@ public class CourseManagementFrame extends JFrame {
                     
                     if (success) {
                         // إعادة تحميل البيانات
-                        Course updatedCourse = getCourseWithEnrollmentsDirect(courseCode);
+                        Course updatedCourse = createFreshCourseWithEnrollments(courseCode);
                         if (updatedCourse != null) {
-                            course.getEnrolledStudents().clear();
-                            course.getEnrolledStudents().addAll(updatedCourse.getEnrolledStudents());
+                            // نسخ الطلاب إلى الكائن الحالي
+                            copyCourseStudents(course, updatedCourse);
                         }
                         
                         // تحديث الواجهة
@@ -727,10 +728,10 @@ public class CourseManagementFrame extends JFrame {
                     
                     if (success) {
                         // إعادة تحميل البيانات
-                        Course updatedCourse = getCourseWithEnrollmentsDirect(courseCode);
+                        Course updatedCourse = createFreshCourseWithEnrollments(courseCode);
                         if (updatedCourse != null) {
-                            course.getEnrolledStudents().clear();
-                            course.getEnrolledStudents().addAll(updatedCourse.getEnrolledStudents());
+                            // نسخ الطلاب إلى الكائن الحالي
+                            copyCourseStudents(course, updatedCourse);
                         }
                         
                         // تحديث الواجهة
@@ -765,10 +766,11 @@ public class CourseManagementFrame extends JFrame {
         
         refreshButton.addActionListener(e -> {
             System.out.println("\n=== MANUAL REFRESH CLICKED ===");
-            Course refreshedCourse = getCourseWithEnrollmentsDirect(courseCode);
+            Course refreshedCourse = createFreshCourseWithEnrollments(courseCode);
             if (refreshedCourse != null) {
-                course.getEnrolledStudents().clear();
-                course.getEnrolledStudents().addAll(refreshedCourse.getEnrolledStudents());
+                // نسخ الطلاب إلى الكائن الحالي
+                copyCourseStudents(course, refreshedCourse);
+                
                 refreshEnrolledStudentsTable(enrolledModel, course);
                 enrollmentValue.setText(course.getCurrentEnrollment() + "/" + course.getMaxStudents());
                 availableValue.setText(String.valueOf(course.getAvailableSeats()));
@@ -887,33 +889,105 @@ public class CourseManagementFrame extends JFrame {
         setLocationRelativeTo(null);
     }
     
-    // ==================== الدوال المساعدة ====================
+    // ==================== الدوال المساعدة الجديدة ====================
     
     /**
-     * الحصول على المادة مع الطلاب
+     * إنشاء مادة جديدة تماماً مع الطلاب (الحل النهائي)
      */
-    private Course getCourseWithEnrollmentsDirect(String courseCode) {
-        Course course = courseService.getCourseByCode(courseCode);
-        if (course != null) {
-            // الحصول على الطلاب المسجلين مباشرة
-            List<Student> enrolledStudents = getEnrolledStudentsDirect(course.getId());
+    private Course createFreshCourseWithEnrollments(String courseCode) {
+        // الحصول على المادة الأساسية
+        Course baseCourse = courseService.getCourseByCode(courseCode);
+        if (baseCourse == null) {
+            System.err.println("❌ Base course not found: " + courseCode);
+            return null;
+        }
+        
+        // الحصول على الطلاب المسجلين
+        List<Student> enrolledStudents = getEnrolledStudentsDirect(baseCourse.getId());
+        
+        System.out.println("🆕 Creating fresh course for: " + courseCode);
+        System.out.println("   Base course ID: " + baseCourse.getId());
+        System.out.println("   Students from DB: " + enrolledStudents.size());
+        
+        // إنشاء مادة جديدة
+        Course freshCourse = new Course(
+            baseCourse.getCourseCode(),
+            baseCourse.getCourseName(),
+            baseCourse.getDescription(),
+            baseCourse.getCreditHours(),
+            baseCourse.getDepartment(),
+            baseCourse.getStartDate(),
+            baseCourse.getEndDate(),
+            baseCourse.getMaxStudents()
+        );
+        
+        freshCourse.setId(baseCourse.getId());
+        freshCourse.setAssignedTeacher(baseCourse.getAssignedTeacher());
+        
+        // الحل الحاسم: استخدام Reflection لإضافة الطلاب إلى القائمة الداخلية
+        try {
+            Field enrolledStudentsField = Course.class.getDeclaredField("enrolledStudents");
+            enrolledStudentsField.setAccessible(true);
+            enrolledStudentsField.set(freshCourse, new ArrayList<>(enrolledStudents));
             
-            System.out.println("📥 Adding " + enrolledStudents.size() + " students to course object");
-            System.out.println("   Before clear: " + course.getEnrolledStudents().size() + " students");
+            System.out.println("✅ Successfully set " + enrolledStudents.size() + " students via Reflection");
             
-            course.getEnrolledStudents().clear();
-            System.out.println("   After clear: " + course.getEnrolledStudents().size() + " students");
+            // التحقق
+            int actualCount = freshCourse.getEnrolledStudents().size();
+            System.out.println("   Verification: Course now has " + actualCount + " students");
             
-            course.getEnrolledStudents().addAll(enrolledStudents);
-            System.out.println("   After addAll: " + course.getEnrolledStudents().size() + " students");
-            
-            // التحقق من أن الطلاب مضافون فعلاً
             if (!enrolledStudents.isEmpty()) {
-                System.out.println("   Sample student: " + enrolledStudents.get(0).getStudentId() + 
-                                  " - " + enrolledStudents.get(0).getName());
+                System.out.println("   Sample student: " + freshCourse.getEnrolledStudents().get(0).getName());
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Reflection failed: " + e.getMessage());
+            
+            // بديل: استخدام enrollStudent لكل طالب
+            System.out.println("   Falling back to enrollStudent method");
+            for (Student student : enrolledStudents) {
+                try {
+                    freshCourse.enrollStudent(student);
+                } catch (Exception ex) {
+                    System.err.println("   ⚠️ Could not enroll " + student.getStudentId() + ": " + ex.getMessage());
+                }
+            }
+            
+            System.out.println("   Final count after fallback: " + freshCourse.getEnrolledStudents().size());
+        }
+        
+        return freshCourse;
+    }
+    
+    /**
+     * نسخ الطلاب من مادة إلى أخرى
+     */
+    private void copyCourseStudents(Course target, Course source) {
+        try {
+            Field targetField = Course.class.getDeclaredField("enrolledStudents");
+            targetField.setAccessible(true);
+            
+            Field sourceField = Course.class.getDeclaredField("enrolledStudents");
+            sourceField.setAccessible(true);
+            
+            List<Student> sourceStudents = (List<Student>) sourceField.get(source);
+            targetField.set(target, new ArrayList<>(sourceStudents));
+            
+            System.out.println("✅ Copied " + sourceStudents.size() + " students from source to target");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error copying students: " + e.getMessage());
+            
+            // بديل يدوي
+            target.getEnrolledStudents().clear();
+            for (Student student : source.getEnrolledStudents()) {
+                try {
+                    target.enrollStudent(student);
+                } catch (Exception ex) {
+                    // تجاهل الأخطاء
+                }
             }
         }
-        return course;
     }
     
     /**
@@ -929,21 +1003,6 @@ public class CourseManagementFrame extends JFrame {
         try {
             connection = DatabaseConnection.getInstance().getConnection();
             
-            // استعلام DEBUG: التحقق أولاً من وجود بيانات
-            String debugSql = "SELECT COUNT(*) as count FROM course_enrollments WHERE course_id = ?";
-            pstmt = connection.prepareStatement(debugSql);
-            pstmt.setInt(1, courseId);
-            rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                int totalEnrollments = rs.getInt("count");
-                System.out.println("🔍 DEBUG: Total enrollments in database for course " + courseId + ": " + totalEnrollments);
-            }
-            
-            rs.close();
-            pstmt.close();
-            
-            // الآن جلب البيانات الكاملة
             String sql = """
                 SELECT DISTINCT s.student_id
                 FROM course_enrollments ce
@@ -957,45 +1016,23 @@ public class CourseManagementFrame extends JFrame {
             rs = pstmt.executeQuery();
             
             int count = 0;
-            boolean studentServiceAvailable = true;
-            
             while (rs.next()) {
                 count++;
                 String studentId = rs.getString("student_id");
-                System.out.println("   Student ID found: " + studentId);
                 
-                // المحاولة الأولى: استخدام studentService
-                Student student = null;
-                if (studentServiceAvailable) {
-                    try {
-                        student = studentService.getStudentByStudentId(studentId);
-                        if (student == null) {
-                            System.err.println("   ❗ studentService returned null for ID: " + studentId);
-                        }
-                    } catch (Exception e) {
-                        System.err.println("   ❌ studentService error for " + studentId + ": " + e.getMessage());
-                        studentServiceAvailable = false;
-                    }
-                }
-                
-                // المحاولة الثانية: إنشاء Student يدوياً إذا فشلت الخدمة
-                if (student == null) {
-                    student = createStudentManually(connection, studentId);
-                }
-                
+                // استخدام studentService
+                Student student = studentService.getStudentByStudentId(studentId);
                 if (student != null) {
                     students.add(student);
-                    System.out.println("   ✅ Added: " + student.getName() + " (" + studentId + ")");
                 } else {
-                    System.err.println("   ❌ Could not create Student object for: " + studentId);
+                    System.err.println("   ❗ Student not found: " + studentId);
                 }
             }
             
-            System.out.println("✅ FINAL: Successfully loaded " + students.size() + " out of " + count + " enrolled students");
+            System.out.println("📋 Retrieved " + students.size() + " students from DB (out of " + count + " records)");
             
         } catch (SQLException e) {
             System.err.println("❌ SQL Error in getEnrolledStudentsDirect: " + e.getMessage());
-            e.printStackTrace();
         } finally {
             try {
                 if (rs != null) rs.close();
@@ -1006,70 +1043,6 @@ public class CourseManagementFrame extends JFrame {
         }
         
         return students;
-    }
-    
-    /**
-     * دالة مساعدة لإنشاء Student يدوياً إذا فشلت الخدمة
-     */
-    private Student createStudentManually(Connection connection, String studentId) {
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-        
-        try {
-            String sql = """
-                SELECT s.student_id, p.name, p.email, p.phone, p.address, 
-                       p.birth_date, s.grade, s.enrollment_date
-                FROM students s
-                JOIN persons p ON s.person_id = p.id
-                WHERE s.student_id = ?
-                """;
-            
-            pstmt = connection.prepareStatement(sql);
-            pstmt.setString(1, studentId);
-            rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                String name = rs.getString("name");
-                String email = rs.getString("email") != null ? rs.getString("email") : "";
-                String phone = rs.getString("phone") != null ? rs.getString("phone") : "";
-                String address = rs.getString("address") != null ? rs.getString("address") : "";
-                String grade = rs.getString("grade") != null ? rs.getString("grade") : "";
-                
-                // التعامل مع التواريخ
-                LocalDate birthDate = LocalDate.now();
-                LocalDate enrollmentDate = LocalDate.now();
-                
-                try {
-                    String birthDateStr = rs.getString("birth_date");
-                    if (birthDateStr != null && !birthDateStr.trim().isEmpty()) {
-                        birthDate = LocalDate.parse(birthDateStr);
-                    }
-                    
-                    String enrollmentDateStr = rs.getString("enrollment_date");
-                    if (enrollmentDateStr != null && !enrollmentDateStr.trim().isEmpty()) {
-                        enrollmentDate = LocalDate.parse(enrollmentDateStr);
-                    }
-                } catch (Exception e) {
-                    System.err.println("   ⚠️ Date parsing error for " + studentId);
-                }
-                
-                // إنشاء Student باستخدام المنشئ الصحيح
-                return new Student(studentId, name, email, phone, birthDate, grade, address, enrollmentDate);
-            }
-        } catch (SQLException e) {
-            System.err.println("❌ Error creating student manually: " + e.getMessage());
-        } catch (Exception e) {
-            System.err.println("❌ Error in Student constructor for " + studentId + ": " + e.getMessage());
-        } finally {
-            try {
-                if (rs != null) rs.close();
-                if (pstmt != null) pstmt.close();
-            } catch (SQLException e) {
-                // تجاهل
-            }
-        }
-        
-        return null;
     }
     
     /**
@@ -1155,27 +1128,14 @@ public class CourseManagementFrame extends JFrame {
     }
     
     /**
-     * تحديث جدول الطلاب مع Debug شامل
+     * تحديث جدول الطلاب
      */
     private void refreshEnrolledStudentsTable(DefaultTableModel model, Course course) {
-        System.out.println("🔄 START refreshEnrolledStudentsTable");
-        System.out.println("   Course: " + course.getCourseCode());
-        System.out.println("   Enrolled students count from course object: " + course.getEnrolledStudents().size());
+        System.out.println("🔄 Refreshing table for: " + course.getCourseCode());
+        System.out.println("   Course has " + course.getEnrolledStudents().size() + " students");
         
-        // عرض تفاصيل جميع الطلاب
-        int studentNum = 1;
-        for (Student student : course.getEnrolledStudents()) {
-            System.out.println("   Student #" + studentNum + ": " + 
-                              student.getStudentId() + " - " + 
-                              student.getName() + " (" + student.getGrade() + ")");
-            studentNum++;
-        }
-        
-        // مسح الجدول القديم
         model.setRowCount(0);
-        System.out.println("   Table cleared, row count: " + model.getRowCount());
         
-        // إضافة الصفوف الجديدة
         int addedRows = 0;
         for (Student student : course.getEnrolledStudents()) {
             Object[] rowData = {
@@ -1187,15 +1147,9 @@ public class CourseManagementFrame extends JFrame {
             
             model.addRow(rowData);
             addedRows++;
-            
-            System.out.println("   [+] Added row " + addedRows + ": " + 
-                              student.getStudentId() + " - " + student.getName());
         }
         
-        System.out.println("✅ END refreshEnrolledStudentsTable - Added " + addedRows + " rows");
-        System.out.println("   Final table row count: " + model.getRowCount());
-        
-        // إجبار الجدول على إعادة الرسم
+        System.out.println("✅ Added " + addedRows + " rows to table");
         model.fireTableDataChanged();
     }
     
