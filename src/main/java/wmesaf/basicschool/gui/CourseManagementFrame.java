@@ -1,44 +1,3 @@
-//package wmesaf.basicschool.gui;
-//
-//import javax.swing.*;
-//import java.awt.*;
-//
-//public class CourseManagementFrame extends JFrame {
-//    public CourseManagementFrame() {
-//        initUI();
-//        setupFrame();
-//    }
-//    
-//    private void initUI() {
-//        setLayout(new BorderLayout());
-//        
-//        JLabel titleLabel = new JLabel("Course Management", SwingConstants.CENTER);
-//        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-//        titleLabel.setForeground(new Color(241, 196, 15));
-//        
-//        JTextArea contentArea = new JTextArea();
-//        contentArea.setText("COURSE MANAGEMENT SYSTEM\n\n" +
-//                           "This module will be implemented in the future.\n\n" +
-//                           "Planned features:\n" +
-//                           "• Create and manage courses\n" +
-//                           "• Assign teachers to courses\n" +
-//                           "• Enroll students in courses\n" +
-//                           "• Track course schedules\n" +
-//                           "• Generate course reports");
-//        contentArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
-//        contentArea.setEditable(false);
-//        
-//        add(titleLabel, BorderLayout.NORTH);
-//        add(new JScrollPane(contentArea), BorderLayout.CENTER);
-//    }
-//    
-//    private void setupFrame() {
-//        setTitle("Course Management");
-//        setSize(600, 400);
-//        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-//        setLocationRelativeTo(null);
-//    }
-//}
 package wmesaf.basicschool.gui;
 
 import wmesaf.basicschool.business.CourseService;
@@ -54,6 +13,7 @@ import java.awt.event.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.ArrayList;
 
 public class CourseManagementFrame extends JFrame {
     private CourseService courseService;
@@ -83,7 +43,7 @@ public class CourseManagementFrame extends JFrame {
         // العنوان
         JLabel titleLabel = new JLabel("Course Management");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        titleLabel.setForeground(new Color(142, 68, 173)); // لون أرجواني للمواد
+        titleLabel.setForeground(new Color(142, 68, 173));
         
         // شريط البحث
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -108,12 +68,12 @@ public class CourseManagementFrame extends JFrame {
         String[] buttonNames = {"Add Course", "Edit Course", "Delete Course", 
                                "Manage Students", "View Details", "Refresh"};
         Color[] buttonColors = {
-            new Color(46, 204, 113),  // أخضر - إضافة
-            new Color(241, 196, 15),  // أصفر - تعديل
-            new Color(231, 76, 60),   // أحمر - حذف
-            new Color(52, 152, 219),  // أزرق - إدارة طلاب
-            new Color(155, 89, 182),  // أرجواني - تفاصيل
-            new Color(149, 165, 166)  // رمادي - تحديث
+            new Color(46, 204, 113),
+            new Color(241, 196, 15),
+            new Color(231, 76, 60),
+            new Color(52, 152, 219),
+            new Color(155, 89, 182),
+            new Color(149, 165, 166)
         };
         
         for (int i = 0; i < buttonNames.length; i++) {
@@ -137,13 +97,6 @@ public class CourseManagementFrame extends JFrame {
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
-            
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 2) return Integer.class; // Credits
-                if (columnIndex == 5) return String.class;  // Students format
-                return String.class;
-            }
         };
         
         courseTable = new JTable(tableModel);
@@ -153,17 +106,6 @@ public class CourseManagementFrame extends JFrame {
         courseTable.getTableHeader().setBackground(new Color(142, 68, 173));
         courseTable.getTableHeader().setForeground(Color.WHITE);
         
-        // جعل عرض الأعمدة مناسباً
-        courseTable.getColumnModel().getColumn(0).setPreferredWidth(100); // Code
-        courseTable.getColumnModel().getColumn(1).setPreferredWidth(200); // Name
-        courseTable.getColumnModel().getColumn(2).setPreferredWidth(60);  // Credits
-        courseTable.getColumnModel().getColumn(3).setPreferredWidth(120); // Department
-        courseTable.getColumnModel().getColumn(4).setPreferredWidth(150); // Teacher
-        courseTable.getColumnModel().getColumn(5).setPreferredWidth(80);  // Students
-        courseTable.getColumnModel().getColumn(6).setPreferredWidth(100); // Start Date
-        courseTable.getColumnModel().getColumn(7).setPreferredWidth(100); // End Date
-        
-        // إضافة مستمع للنقر المزدوج
         courseTable.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
@@ -190,7 +132,6 @@ public class CourseManagementFrame extends JFrame {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(160, 40));
         
-        // إضافة مستمعات الأحداث
         switch (text) {
             case "Add Course":
                 button.addActionListener(e -> addCourse());
@@ -221,8 +162,6 @@ public class CourseManagementFrame extends JFrame {
         
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         
-        System.out.println("📚 Loading " + courses.size() + " courses...");
-        
         for (Course course : courses) {
             Object[] row = {
                 course.getCourseCode(),
@@ -238,8 +177,6 @@ public class CourseManagementFrame extends JFrame {
         }
         
         searchField.setText("");
-        
-        // إخفاء زر العينات إذا كان هناك مواد
         addSampleDataButton.setVisible(courses.isEmpty());
     }
     
@@ -260,8 +197,6 @@ public class CourseManagementFrame extends JFrame {
                 "No courses found matching: " + searchTerm,
                 "Search Results",
                 JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            System.out.println("🔍 Found " + courses.size() + " courses matching: " + searchTerm);
         }
         
         for (Course course : courses) {
@@ -299,7 +234,6 @@ public class CourseManagementFrame extends JFrame {
         JTextField endDateField = new JTextField(LocalDate.now().plusMonths(4).toString());
         JTextField maxStudentsField = new JTextField("30");
         
-        // قائمة المعلمين
         JComboBox<String> teacherCombo = new JComboBox<>();
         teacherCombo.addItem("-- Select Teacher --");
         List<Teacher> teachers = teacherService.getAllTeachers();
@@ -337,7 +271,6 @@ public class CourseManagementFrame extends JFrame {
         
         saveButton.addActionListener(e -> {
             try {
-                // التحقق من المدخلات
                 if (codeField.getText().trim().isEmpty() || nameField.getText().trim().isEmpty()) {
                     JOptionPane.showMessageDialog(dialog,
                         "Please fill in required fields (Course Code and Name)",
@@ -346,7 +279,6 @@ public class CourseManagementFrame extends JFrame {
                     return;
                 }
                 
-                // التحقق من كود المادة
                 if (courseService.courseCodeExists(codeField.getText().trim())) {
                     JOptionPane.showMessageDialog(dialog,
                         "Course code already exists. Please use a different code.",
@@ -355,7 +287,6 @@ public class CourseManagementFrame extends JFrame {
                     return;
                 }
                 
-                // إنشاء المادة
                 Course newCourse = new Course(
                     codeField.getText().trim(),
                     nameField.getText().trim(),
@@ -367,7 +298,6 @@ public class CourseManagementFrame extends JFrame {
                     Integer.parseInt(maxStudentsField.getText().trim())
                 );
                 
-                // تعيين المعلم إذا تم اختياره
                 if (teacherCombo.getSelectedIndex() > 0) {
                     String teacherInfo = (String) teacherCombo.getSelectedItem();
                     String teacherId = teacherInfo.split(" - ")[0];
@@ -375,7 +305,6 @@ public class CourseManagementFrame extends JFrame {
                     newCourse.setAssignedTeacher(teacher);
                 }
                 
-                // حفظ المادة
                 if (courseService.addCourse(newCourse)) {
                     JOptionPane.showMessageDialog(dialog,
                         "Course added successfully!\n\n" +
@@ -438,7 +367,7 @@ public class CourseManagementFrame extends JFrame {
         formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
         JTextField codeField = new JTextField(course.getCourseCode());
-        codeField.setEditable(false); // لا يمكن تغيير الكود
+        codeField.setEditable(false);
         JTextField nameField = new JTextField(course.getCourseName());
         JTextField creditsField = new JTextField(String.valueOf(course.getCreditHours()));
         JTextField deptField = new JTextField(course.getDepartment());
@@ -451,7 +380,6 @@ public class CourseManagementFrame extends JFrame {
         JTextField endDateField = new JTextField(course.getEndDate().format(formatter));
         JTextField maxStudentsField = new JTextField(String.valueOf(course.getMaxStudents()));
         
-        // قائمة المعلمين
         JComboBox<String> teacherCombo = new JComboBox<>();
         teacherCombo.addItem("-- Select Teacher --");
         List<Teacher> teachers = teacherService.getAllTeachers();
@@ -459,7 +387,6 @@ public class CourseManagementFrame extends JFrame {
             teacherCombo.addItem(teacher.getTeacherId() + " - " + teacher.getName());
         }
         
-        // اختيار المعلم الحالي
         if (course.getAssignedTeacher() != null) {
             String currentTeacher = course.getAssignedTeacher().getTeacherId() + " - " + 
                                    course.getAssignedTeacher().getName();
@@ -509,7 +436,6 @@ public class CourseManagementFrame extends JFrame {
                 course.setEndDate(LocalDate.parse(endDateField.getText().trim()));
                 course.setMaxStudents(Integer.parseInt(maxStudentsField.getText().trim()));
                 
-                // تحديث المعلم
                 if (teacherCombo.getSelectedIndex() > 0) {
                     String teacherInfo = (String) teacherCombo.getSelectedItem();
                     String teacherId = teacherInfo.split(" - ")[0];
@@ -591,171 +517,1034 @@ public class CourseManagementFrame extends JFrame {
         }
     }
     
+    /**
+ * ✅ **الدالة المصححة: إدارة طلاب المادة**
+ */
+//private void manageCourseStudents() {
+//    int selectedRow = courseTable.getSelectedRow();
+//    if (selectedRow == -1) {
+//        JOptionPane.showMessageDialog(this,
+//            "Please select a course to manage students.",
+//            "No Selection",
+//            JOptionPane.WARNING_MESSAGE);
+//        return;
+//    }
+//    
+//    String courseCode = (String) tableModel.getValueAt(selectedRow, 0);
+//    
+//    // ✅ **الحل: الحصول على المادة من قاعدة البيانات مباشرة**
+//    Course course = courseService.getCourseByCode(courseCode);
+//    
+//    if (course == null) {
+//        JOptionPane.showMessageDialog(this,
+//            "Course not found in database.",
+//            "Error",
+//            JOptionPane.ERROR_MESSAGE);
+//        return;
+//    }
+//    
+//    // ✅ **الحل: إعادة تحميل الطلاب المسجلين**
+//    reloadCourseEnrollments(course);
+//    
+//    JDialog dialog = new JDialog(this, "Manage Students - " + course.getCourseCode(), true);
+//    dialog.setLayout(new BorderLayout());
+//    dialog.setSize(600, 500);
+//    
+//    // لوحة معلومات المادة
+//    JPanel infoPanel = new JPanel(new GridLayout(3, 2, 10, 5));
+//    infoPanel.setBorder(BorderFactory.createTitledBorder("Course Information"));
+//    
+//    JLabel courseLabel = new JLabel("Course:");
+//    JLabel courseValue = new JLabel(course.getCourseCode() + " - " + course.getCourseName());
+//    JLabel teacherLabel = new JLabel("Teacher:");
+//    JLabel teacherValue = new JLabel(course.getAssignedTeacher() != null ? 
+//        course.getAssignedTeacher().getName() : "Not Assigned");
+//    JLabel enrollmentLabel = new JLabel("Enrollment:");
+//    JLabel enrollmentValue = new JLabel(getEnrollmentText(course));
+//    
+//    infoPanel.add(courseLabel);
+//    infoPanel.add(courseValue);
+//    infoPanel.add(teacherLabel);
+//    infoPanel.add(teacherValue);
+//    infoPanel.add(enrollmentLabel);
+//    infoPanel.add(enrollmentValue);
+//    
+//    // قائمة الطلاب المسجلين
+//    DefaultTableModel enrolledModel = new DefaultTableModel(
+//        new String[]{"Student ID", "Name", "Grade", "Email"}, 0) {
+//        @Override
+//        public boolean isCellEditable(int row, int column) {
+//            return false;
+//        }
+//    };
+//    
+//    JTable enrolledTable = new JTable(enrolledModel);
+//    enrolledTable.setRowHeight(25);
+//    
+//    // ✅ **التحميل المباشر للطلاب المسجلين**
+//    loadEnrolledStudents(enrolledModel, course);
+//    
+//    JScrollPane enrolledScroll = new JScrollPane(enrolledTable);
+//    enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+//        "Enrolled Students (" + course.getCurrentEnrollment() + ")"
+//    ));
+//    
+//    // لوحة الإجراءات
+//    JPanel actionPanel = new JPanel(new FlowLayout());
+//    JButton enrollButton = new JButton("➕ Enroll Student");
+//    JButton unenrollButton = new JButton("➖ Remove Student");
+//    JButton refreshButton = new JButton("🔄 Refresh List");
+//    
+//    enrollButton.setBackground(new Color(46, 204, 113));
+//    enrollButton.setForeground(Color.WHITE);
+//    unenrollButton.setBackground(new Color(231, 76, 60));
+//    unenrollButton.setForeground(Color.WHITE);
+//    refreshButton.setBackground(new Color(52, 152, 219));
+//    refreshButton.setForeground(Color.WHITE);
+//    
+//    enrollButton.addActionListener(e -> {
+//        // ✅ **الحل: الحصول على قائمة الطلاب المتاحة**
+//        List<Student> allStudents = studentService.getAllStudents();
+//        List<Student> enrolledStudents = course.getEnrolledStudents();
+//        
+//        // تصفية الطلاب غير المسجلين
+//        List<Student> availableStudents = new ArrayList<>();
+//        for (Student student : allStudents) {
+//            if (!isStudentEnrolled(student, enrolledStudents)) {
+//                availableStudents.add(student);
+//            }
+//        }
+//        
+//        if (availableStudents.isEmpty()) {
+//            JOptionPane.showMessageDialog(dialog,
+//                "All students are already enrolled in this course.",
+//                "No Students Available",
+//                JOptionPane.INFORMATION_MESSAGE);
+//            return;
+//        }
+//        
+//        // ✅ **الحل: التحقق من امتلاء المادة**
+//        if (isCourseFull(course)) {
+//            JOptionPane.showMessageDialog(dialog,
+//                "Course is full! Cannot enroll more students.\n" +
+//                "Maximum capacity: " + course.getMaxStudents(),
+//                "Course Full",
+//                JOptionPane.WARNING_MESSAGE);
+//            return;
+//        }
+//        
+//        String[] studentOptions = availableStudents.stream()
+//            .map(s -> s.getStudentId() + " - " + s.getName() + " (" + s.getGrade() + ")")
+//            .toArray(String[]::new);
+//        
+//        String selectedStudent = (String) JOptionPane.showInputDialog(dialog,
+//            "Select student to enroll:\n" +
+//            "Available seats: " + getAvailableSeats(course) + "\n" +
+//            "Current enrollment: " + course.getCurrentEnrollment() + "/" + course.getMaxStudents(),
+//            "Enroll Student",
+//            JOptionPane.PLAIN_MESSAGE,
+//            null,
+//            studentOptions,
+//            studentOptions[0]);
+//        
+//        if (selectedStudent != null) {
+//            String studentId = selectedStudent.split(" - ")[0];
+//            try {
+//                // ✅ **تسجيل الطالب في قاعدة البيانات**
+//                boolean success = courseService.enrollStudentInCourse(course.getId(), studentId);
+//                
+//                if (success) {
+//                    JOptionPane.showMessageDialog(dialog,
+//                        "✅ Student enrolled successfully!\n\n" +
+//                        "Student: " + selectedStudent.split(" - ")[1] + "\n" +
+//                        "New enrollment: " + (course.getCurrentEnrollment() + 1) + "/" + course.getMaxStudents(),
+//                        "Success",
+//                        JOptionPane.INFORMATION_MESSAGE);
+//                    
+//                    // ✅ **تحديث البيانات مباشرة**
+//                    reloadCourseEnrollments(course);
+//                    loadEnrolledStudents(enrolledModel, course);
+//                    enrollmentValue.setText(getEnrollmentText(course));
+//                    enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+//                        "Enrolled Students (" + course.getCurrentEnrollment() + ")"
+//                    ));
+//                    
+//                    // ✅ **تحديث الجدول الرئيسي**
+//                    updateMainTable(course);
+//                    
+//                } else {
+//                    JOptionPane.showMessageDialog(dialog,
+//                        "❌ Failed to enroll student.\n" +
+//                        "The student may already be enrolled.",
+//                        "Enrollment Failed",
+//                        JOptionPane.ERROR_MESSAGE);
+//                }
+//            } catch (Exception ex) {
+//                JOptionPane.showMessageDialog(dialog,
+//                    "❌ Error: " + ex.getMessage(),
+//                    "Enrollment Failed",
+//                    JOptionPane.ERROR_MESSAGE);
+//            }
+//        }
+//    });
+//    
+//    unenrollButton.addActionListener(e -> {
+//        int selectedStudentRow = enrolledTable.getSelectedRow();
+//        if (selectedStudentRow == -1) {
+//            JOptionPane.showMessageDialog(dialog,
+//                "Please select a student to remove.",
+//                "No Selection",
+//                JOptionPane.WARNING_MESSAGE);
+//            return;
+//        }
+//        
+//        String studentId = (String) enrolledModel.getValueAt(selectedStudentRow, 0);
+//        String studentName = (String) enrolledModel.getValueAt(selectedStudentRow, 1);
+//        
+//        int confirm = JOptionPane.showConfirmDialog(dialog,
+//            "Remove student from course?\n\n" +
+//            "Student: " + studentName + "\n" +
+//            "ID: " + studentId,
+//            "Confirm Removal",
+//            JOptionPane.YES_NO_OPTION);
+//        
+//        if (confirm == JOptionPane.YES_OPTION) {
+//            try {
+//                // ✅ **إزالة الطالب من قاعدة البيانات**
+//                boolean success = courseService.unenrollStudentFromCourse(course.getId(), studentId);
+//                
+//                if (success) {
+//                    JOptionPane.showMessageDialog(dialog,
+//                        "✅ Student removed from course.",
+//                        "Success",
+//                        JOptionPane.INFORMATION_MESSAGE);
+//                    
+//                    // ✅ **تحديث البيانات مباشرة**
+//                    reloadCourseEnrollments(course);
+//                    loadEnrolledStudents(enrolledModel, course);
+//                    enrollmentValue.setText(getEnrollmentText(course));
+//                    enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+//                        "Enrolled Students (" + course.getCurrentEnrollment() + ")"
+//                    ));
+//                    
+//                    // ✅ **تحديث الجدول الرئيسي**
+//                    updateMainTable(course);
+//                    
+//                } else {
+//                    JOptionPane.showMessageDialog(dialog,
+//                        "❌ Failed to remove student.",
+//                        "Removal Failed",
+//                        JOptionPane.ERROR_MESSAGE);
+//                }
+//            } catch (Exception ex) {
+//                JOptionPane.showMessageDialog(dialog,
+//                    "❌ Error: " + ex.getMessage(),
+//                    "Removal Failed",
+//                    JOptionPane.ERROR_MESSAGE);
+//            }
+//        }
+//    });
+//    
+//    refreshButton.addActionListener(e -> {
+//        // ✅ **تحديث البيانات من قاعدة البيانات**
+//        reloadCourseEnrollments(course);
+//        loadEnrolledStudents(enrolledModel, course);
+//        enrollmentValue.setText(getEnrollmentText(course));
+//        enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+//            "Enrolled Students (" + course.getCurrentEnrollment() + ")"
+//        ));
+//        JOptionPane.showMessageDialog(dialog,
+//            "✅ List refreshed successfully!",
+//            "Refresh Complete",
+//            JOptionPane.INFORMATION_MESSAGE);
+//    });
+//    
+//    actionPanel.add(enrollButton);
+//    actionPanel.add(unenrollButton);
+//    actionPanel.add(refreshButton);
+//    
+//    // زر الإغلاق
+//    JPanel closePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+//    JButton closeButton = new JButton("Close");
+//    closeButton.addActionListener(e -> {
+//        dialog.dispose();
+//        loadCourses(); // تحديث الجدول الرئيسي عند الإغلاق
+//    });
+//    closePanel.add(closeButton);
+//    
+//    JPanel mainActionPanel = new JPanel(new BorderLayout());
+//    mainActionPanel.add(actionPanel, BorderLayout.CENTER);
+//    mainActionPanel.add(closePanel, BorderLayout.EAST);
+//    
+//    dialog.add(infoPanel, BorderLayout.NORTH);
+//    dialog.add(enrolledScroll, BorderLayout.CENTER);
+//    dialog.add(mainActionPanel, BorderLayout.SOUTH);
+//    dialog.setLocationRelativeTo(this);
+//    dialog.setVisible(true);
+//}
+//
+//// ✅ **الدوال المساعدة الجديدة**
+//
+///**
+// * ✅ إعادة تحميل الطلاب المسجلين في المادة
+// */
+//private void reloadCourseEnrollments(Course course) {
+//    // الحصول على المادة المحدثة من قاعدة البيانات
+//    Course updatedCourse = courseService.getCourseById(course.getId());
+//    if (updatedCourse != null) {
+//        // نسخ الطلاب المسجلين
+//        course.getEnrolledStudents().clear();
+//        course.getEnrolledStudents().addAll(updatedCourse.getEnrolledStudents());
+//    }
+//}
+//
+///**
+// * ✅ تحميل الطلاب المسجلين في الجدول
+// */
+//private void loadEnrolledStudents(DefaultTableModel model, Course course) {
+//    model.setRowCount(0);
+//    for (Student student : course.getEnrolledStudents()) {
+//        model.addRow(new Object[]{
+//            student.getStudentId(),
+//            student.getName(),
+//            student.getGrade(),
+//            student.getEmail()
+//        });
+//    }
+//}
+//
+///**
+// * ✅ التحقق مما إذا كان الطالب مسجل في المادة
+// */
+//private boolean isStudentEnrolled(Student student, List<Student> enrolledStudents) {
+//    for (Student enrolled : enrolledStudents) {
+//        if (enrolled.getStudentId().equals(student.getStudentId())) {
+//            return true;
+//        }
+//    }
+//    return false;
+//}
+//
+///**
+// * ✅ التحقق مما إذا كانت المادة ممتلئة
+// */
+//private boolean isCourseFull(Course course) {
+//    return course.getCurrentEnrollment() >= course.getMaxStudents();
+//}
+//
+///**
+// * ✅ الحصول على عدد المقاعد المتاحة
+// */
+//private int getAvailableSeats(Course course) {
+//    return Math.max(0, course.getMaxStudents() - course.getCurrentEnrollment());
+//}
+//
+///**
+// * ✅ الحصول على نص التسجيل
+// */
+//private String getEnrollmentText(Course course) {
+//    return course.getCurrentEnrollment() + "/" + course.getMaxStudents() + 
+//           " (" + getAvailableSeats(course) + " available)";
+//}
+//
+///**
+// * ✅ تحديث الجدول الرئيسي
+// */
+//private void updateMainTable(Course course) {
+//    for (int i = 0; i < tableModel.getRowCount(); i++) {
+//        if (tableModel.getValueAt(i, 0).equals(course.getCourseCode())) {
+//            // تحديث عمود الطلاب
+//            tableModel.setValueAt(
+//                String.format("%d/%d", course.getCurrentEnrollment(), course.getMaxStudents()), 
+//                i, 5
+//            );
+//            break;
+//        }
+//    }
+//}
     private void manageCourseStudents() {
-        int selectedRow = courseTable.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                "Please select a course to manage students.",
+    int selectedRow = courseTable.getSelectedRow();
+    if (selectedRow == -1) {
+        JOptionPane.showMessageDialog(this,
+            "Please select a course to manage students.",
+            "No Selection",
+            JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+    
+    String courseCode = (String) tableModel.getValueAt(selectedRow, 0);
+    
+    // ✅ الحل: إعادة تحميل المادة من قاعدة البيانات أولاً
+    Course course = courseService.getCourseByCode(courseCode);
+    if (course == null) {
+        JOptionPane.showMessageDialog(this,
+            "Course not found in database.",
+            "Error",
+            JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+    
+    // ✅ التحديث الحاسم: إعادة تحميل الطلاب المسجلين من قاعدة البيانات
+    reloadCourseEnrollments(course);
+    
+    JDialog dialog = new JDialog(this, "Manage Students - " + course.getCourseCode(), true);
+    dialog.setLayout(new BorderLayout());
+    dialog.setSize(600, 500);
+    
+    // لوحة معلومات المادة
+    JPanel infoPanel = new JPanel(new GridLayout(4, 2, 10, 5));
+    infoPanel.setBorder(BorderFactory.createTitledBorder("Course Information"));
+    
+    JLabel courseLabel = new JLabel("Course:");
+    JLabel courseValue = new JLabel(course.getCourseCode() + " - " + course.getCourseName());
+    JLabel teacherLabel = new JLabel("Teacher:");
+    JLabel teacherValue = new JLabel(course.getAssignedTeacher() != null ? 
+        course.getAssignedTeacher().getName() : "Not Assigned");
+    JLabel enrollmentLabel = new JLabel("Current Enrollment:");
+    JLabel enrollmentValue = new JLabel(course.getCurrentEnrollment() + "/" + course.getMaxStudents());
+    JLabel availableLabel = new JLabel("Available Seats:");
+    JLabel availableValue = new JLabel(String.valueOf(course.getAvailableSeats()));
+    
+    infoPanel.add(courseLabel);
+    infoPanel.add(courseValue);
+    infoPanel.add(teacherLabel);
+    infoPanel.add(teacherValue);
+    infoPanel.add(enrollmentLabel);
+    infoPanel.add(enrollmentValue);
+    infoPanel.add(availableLabel);
+    infoPanel.add(availableValue);
+    
+    // قائمة الطلاب المسجلين
+    DefaultTableModel enrolledModel = new DefaultTableModel(
+        new String[]{"Student ID", "Name", "Grade", "Email"}, 0) {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
+    };
+    
+    JTable enrolledTable = new JTable(enrolledModel);
+    enrolledTable.setRowHeight(25);
+    
+    // ✅ تحميل الطلاب المسجلين
+    loadEnrolledStudentsToTable(enrolledModel, course);
+    
+    JScrollPane enrolledScroll = new JScrollPane(enrolledTable);
+    enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+        "Enrolled Students (" + course.getCurrentEnrollment() + ")"
+    ));
+    
+    // لوحة الإجراءات
+    JPanel actionPanel = new JPanel(new FlowLayout());
+    JButton enrollButton = new JButton("➕ Enroll Student");
+    JButton unenrollButton = new JButton("➖ Remove Student");
+    JButton refreshButton = new JButton("🔄 Refresh List");
+    
+    enrollButton.setBackground(new Color(46, 204, 113));
+    enrollButton.setForeground(Color.WHITE);
+    unenrollButton.setBackground(new Color(231, 76, 60));
+    unenrollButton.setForeground(Color.WHITE);
+    refreshButton.setBackground(new Color(52, 152, 219));
+    refreshButton.setForeground(Color.WHITE);
+    
+    enrollButton.addActionListener(e -> {
+        // ✅ التحقق من امتلاء المادة
+        if (course.isFull()) {
+            JOptionPane.showMessageDialog(dialog,
+                "Course is full! Cannot enroll more students.\n" +
+                "Maximum capacity: " + course.getMaxStudents(),
+                "Course Full",
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        // ✅ الحصول على جميع الطلاب
+        List<Student> allStudents = studentService.getAllStudents();
+        List<Student> enrolledStudents = course.getEnrolledStudents();
+        
+        // ✅ تصفية الطلاب غير المسجلين
+        List<Student> availableStudents = new ArrayList<>();
+        for (Student student : allStudents) {
+            boolean isEnrolled = false;
+            for (Student enrolled : enrolledStudents) {
+                if (enrolled.getStudentId().equals(student.getStudentId())) {
+                    isEnrolled = true;
+                    break;
+                }
+            }
+            if (!isEnrolled) {
+                availableStudents.add(student);
+            }
+        }
+        
+        if (availableStudents.isEmpty()) {
+            JOptionPane.showMessageDialog(dialog,
+                "All students are already enrolled in this course.",
+                "No Students Available",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // ✅ عرض قائمة الطلاب المتاحين
+        String[] studentOptions = new String[availableStudents.size()];
+        for (int i = 0; i < availableStudents.size(); i++) {
+            Student s = availableStudents.get(i);
+            studentOptions[i] = s.getStudentId() + " - " + s.getName() + " (" + s.getGrade() + ")";
+        }
+        
+        String selectedStudent = (String) JOptionPane.showInputDialog(dialog,
+            "Select student to enroll:\n" +
+            "Available seats: " + course.getAvailableSeats() + "\n" +
+            "Current enrollment: " + course.getCurrentEnrollment() + "/" + course.getMaxStudents(),
+            "Enroll Student",
+            JOptionPane.PLAIN_MESSAGE,
+            null,
+            studentOptions,
+            studentOptions[0]);
+        
+        if (selectedStudent != null && !selectedStudent.isEmpty()) {
+            String studentId = selectedStudent.split(" - ")[0];
+            
+            try {
+                // ✅ تسجيل الطالب في قاعدة البيانات
+                boolean success = courseService.enrollStudentInCourse(course.getId(), studentId);
+                
+                if (success) {
+                    // ✅ التحديث الحاسم: إعادة تحميل بيانات المادة من قاعدة البيانات
+                    reloadCourseEnrollments(course);
+                    
+                    // ✅ تحديث الجدول
+                    loadEnrolledStudentsToTable(enrolledModel, course);
+                    
+                    // ✅ تحديث لوحة المعلومات
+                    enrollmentValue.setText(course.getCurrentEnrollment() + "/" + course.getMaxStudents());
+                    availableValue.setText(String.valueOf(course.getAvailableSeats()));
+                    enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+                        "Enrolled Students (" + course.getCurrentEnrollment() + ")"
+                    ));
+                    
+                    // ✅ تحديث الجدول الرئيسي في النافذة الرئيسية
+                    updateMainTableEnrollment(courseCode, course.getCurrentEnrollment());
+                    
+                    JOptionPane.showMessageDialog(dialog,
+                        "✅ Student enrolled successfully!\n\n" +
+                        "Student: " + selectedStudent.split(" - ")[1] + "\n" +
+                        "New enrollment: " + course.getCurrentEnrollment() + "/" + course.getMaxStudents(),
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(dialog,
+                        "❌ Failed to enroll student.",
+                        "Enrollment Failed",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog,
+                    "❌ Error: " + ex.getMessage(),
+                    "Enrollment Failed",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    });
+    
+    unenrollButton.addActionListener(e -> {
+        int selectedStudentRow = enrolledTable.getSelectedRow();
+        if (selectedStudentRow == -1) {
+            JOptionPane.showMessageDialog(dialog,
+                "Please select a student to remove.",
                 "No Selection",
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
         
-        String courseCode = (String) tableModel.getValueAt(selectedRow, 0);
-        Course course = courseService.getCourseByCode(courseCode);
+        String studentId = (String) enrolledModel.getValueAt(selectedStudentRow, 0);
+        String studentName = (String) enrolledModel.getValueAt(selectedStudentRow, 1);
         
-        if (course == null) {
-            JOptionPane.showMessageDialog(this,
-                "Course not found in database.",
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+        int confirm = JOptionPane.showConfirmDialog(dialog,
+            "Remove student from course?\n\n" +
+            "Student: " + studentName + "\n" +
+            "ID: " + studentId,
+            "Confirm Removal",
+            JOptionPane.YES_NO_OPTION);
         
-        JDialog dialog = new JDialog(this, "Manage Students - " + course.getCourseCode(), true);
-        dialog.setLayout(new BorderLayout());
-        dialog.setSize(600, 500);
-        
-        // لوحة معلومات المادة
-        JPanel infoPanel = new JPanel(new GridLayout(3, 2, 10, 5));
-        infoPanel.setBorder(BorderFactory.createTitledBorder("Course Information"));
-        infoPanel.add(new JLabel("Course:"));
-        infoPanel.add(new JLabel(course.getCourseCode() + " - " + course.getCourseName()));
-        infoPanel.add(new JLabel("Teacher:"));
-        infoPanel.add(new JLabel(course.getAssignedTeacher() != null ? 
-            course.getAssignedTeacher().getName() : "Not Assigned"));
-        infoPanel.add(new JLabel("Enrollment:"));
-        infoPanel.add(new JLabel(course.getCurrentEnrollment() + "/" + course.getMaxStudents() + 
-            " (" + course.getAvailableSeats() + " available)"));
-        
-        // قائمة الطلاب المسجلين
-        DefaultTableModel enrolledModel = new DefaultTableModel(
-            new String[]{"Student ID", "Name", "Grade", "Email"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        
-        JTable enrolledTable = new JTable(enrolledModel);
-        List<Student> enrolledStudents = course.getEnrolledStudents();
-        for (Student student : enrolledStudents) {
-            enrolledModel.addRow(new Object[]{
-                student.getStudentId(),
-                student.getName(),
-                student.getGrade(),
-                student.getEmail()
-            });
-        }
-        
-        JScrollPane enrolledScroll = new JScrollPane(enrolledTable);
-        enrolledScroll.setBorder(BorderFactory.createTitledBorder("Enrolled Students"));
-        
-        // لوحة الإجراءات
-        JPanel actionPanel = new JPanel(new FlowLayout());
-        JButton enrollButton = new JButton("➕ Enroll Student");
-        JButton unenrollButton = new JButton("➖ Remove Student");
-        
-        enrollButton.setBackground(new Color(46, 204, 113));
-        enrollButton.setForeground(Color.WHITE);
-        unenrollButton.setBackground(new Color(231, 76, 60));
-        unenrollButton.setForeground(Color.WHITE);
-        
-        enrollButton.addActionListener(e -> {
-            // عرض قائمة الطلاب غير المسجلين
-            List<Student> allStudents = studentService.getAllStudents();
-            allStudents.removeAll(enrolledStudents);
-            
-            if (allStudents.isEmpty()) {
-                JOptionPane.showMessageDialog(dialog,
-                    "All students are already enrolled in this course.",
-                    "No Students Available",
-                    JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            
-            if (course.isFull()) {
-                JOptionPane.showMessageDialog(dialog,
-                    "Course is full! Cannot enroll more students.",
-                    "Course Full",
-                    JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            
-            String[] studentOptions = allStudents.stream()
-                .map(s -> s.getStudentId() + " - " + s.getName() + " (" + s.getGrade() + ")")
-                .toArray(String[]::new);
-            
-            String selected = (String) JOptionPane.showInputDialog(dialog,
-                "Select student to enroll:\nAvailable seats: " + course.getAvailableSeats(),
-                "Enroll Student",
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                studentOptions,
-                studentOptions[0]);
-            
-            if (selected != null) {
-                String studentId = selected.split(" - ")[0];
-                try {
-                    if (courseService.enrollStudentInCourse(course.getId(), studentId)) {
-                        JOptionPane.showMessageDialog(dialog,
-                            "Student enrolled successfully!",
-                            "Success",
-                            JOptionPane.INFORMATION_MESSAGE);
-                        dialog.dispose();
-                        manageCourseStudents(); // إعادة تحميل
-                    }
-                } catch (Exception ex) {
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                // ✅ إزالة الطالب من قاعدة البيانات
+                boolean success = courseService.unenrollStudentFromCourse(course.getId(), studentId);
+                
+                if (success) {
+                    // ✅ التحديث الحاسم: إعادة تحميل بيانات المادة من قاعدة البيانات
+                    reloadCourseEnrollments(course);
+                    
+                    // ✅ تحديث الجدول
+                    loadEnrolledStudentsToTable(enrolledModel, course);
+                    
+                    // ✅ تحديث لوحة المعلومات
+                    enrollmentValue.setText(course.getCurrentEnrollment() + "/" + course.getMaxStudents());
+                    availableValue.setText(String.valueOf(course.getAvailableSeats()));
+                    enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+                        "Enrolled Students (" + course.getCurrentEnrollment() + ")"
+                    ));
+                    
+                    // ✅ تحديث الجدول الرئيسي في النافذة الرئيسية
+                    updateMainTableEnrollment(courseCode, course.getCurrentEnrollment());
+                    
                     JOptionPane.showMessageDialog(dialog,
-                        "Error: " + ex.getMessage(),
-                        "Enrollment Failed",
-                        JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-        
-        unenrollButton.addActionListener(e -> {
-            int selectedStudentRow = enrolledTable.getSelectedRow();
-            if (selectedStudentRow == -1) {
-                JOptionPane.showMessageDialog(dialog,
-                    "Please select a student to remove.",
-                    "No Selection",
-                    JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            
-            String studentId = (String) enrolledModel.getValueAt(selectedStudentRow, 0);
-            String studentName = (String) enrolledModel.getValueAt(selectedStudentRow, 1);
-            
-            int confirm = JOptionPane.showConfirmDialog(dialog,
-                "Remove student from course?\n\n" +
-                "Student: " + studentName + "\n" +
-                "ID: " + studentId,
-                "Confirm Removal",
-                JOptionPane.YES_NO_OPTION);
-            
-            if (confirm == JOptionPane.YES_OPTION) {
-                if (courseService.unenrollStudentFromCourse(course.getId(), studentId)) {
-                    JOptionPane.showMessageDialog(dialog,
-                        "Student removed from course.",
+                        "✅ Student removed from course.",
                         "Success",
                         JOptionPane.INFORMATION_MESSAGE);
-                    dialog.dispose();
-                    manageCourseStudents(); // إعادة تحميل
+                } else {
+                    JOptionPane.showMessageDialog(dialog,
+                        "❌ Failed to remove student.",
+                        "Removal Failed",
+                        JOptionPane.ERROR_MESSAGE);
                 }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog,
+                    "❌ Error: " + ex.getMessage(),
+                    "Removal Failed",
+                    JOptionPane.ERROR_MESSAGE);
             }
-        });
-        
-        actionPanel.add(enrollButton);
-        actionPanel.add(unenrollButton);
-        
-        dialog.add(infoPanel, BorderLayout.NORTH);
-        dialog.add(enrolledScroll, BorderLayout.CENTER);
-        dialog.add(actionPanel, BorderLayout.SOUTH);
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
-    }
+        }
+    });
     
+    refreshButton.addActionListener(e -> {
+        // ✅ إعادة تحميل البيانات من قاعدة البيانات
+        reloadCourseEnrollments(course);
+        loadEnrolledStudentsToTable(enrolledModel, course);
+        enrollmentValue.setText(course.getCurrentEnrollment() + "/" + course.getMaxStudents());
+        availableValue.setText(String.valueOf(course.getAvailableSeats()));
+        enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+            "Enrolled Students (" + course.getCurrentEnrollment() + ")"
+        ));
+        JOptionPane.showMessageDialog(dialog,
+            "✅ List refreshed successfully!",
+            "Refresh Complete",
+            JOptionPane.INFORMATION_MESSAGE);
+    });
+    
+    actionPanel.add(enrollButton);
+    actionPanel.add(unenrollButton);
+    actionPanel.add(refreshButton);
+    
+    // زر الإغلاق
+    JPanel closePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    JButton closeButton = new JButton("Close");
+    closeButton.addActionListener(e -> {
+        dialog.dispose();
+        loadCourses(); // تحديث الجدول الرئيسي عند الإغلاق
+    });
+    closePanel.add(closeButton);
+    
+    JPanel mainActionPanel = new JPanel(new BorderLayout());
+    mainActionPanel.add(actionPanel, BorderLayout.CENTER);
+    mainActionPanel.add(closePanel, BorderLayout.EAST);
+    
+    dialog.add(infoPanel, BorderLayout.NORTH);
+    dialog.add(enrolledScroll, BorderLayout.CENTER);
+    dialog.add(mainActionPanel, BorderLayout.SOUTH);
+    dialog.setLocationRelativeTo(this);
+    dialog.setVisible(true);
+}
+
+// ✅ الدوال المساعدة المطلوبة - أضف هذه الدوال في نفس الكلاس CourseManagementFrame:
+
+/**
+ * إعادة تحميل الطلاب المسجلين من قاعدة البيانات
+ */
+private void reloadCourseEnrollments(Course course) {
+    Course updatedCourse = courseService.getCourseById(course.getId());
+    if (updatedCourse != null) {
+        course.getEnrolledStudents().clear();
+        course.getEnrolledStudents().addAll(updatedCourse.getEnrolledStudents());
+    }
+}
+
+/**
+ * تحميل الطلاب المسجلين إلى الجدول
+ */
+private void loadEnrolledStudentsToTable(DefaultTableModel model, Course course) {
+    model.setRowCount(0);
+    for (Student student : course.getEnrolledStudents()) {
+        model.addRow(new Object[]{
+            student.getStudentId(),
+            student.getName(),
+            student.getGrade(),
+            student.getEmail()
+        });
+    }
+}
+
+/**
+ * تحديث الجدول الرئيسي
+ */
+private void updateMainTableEnrollment(String courseCode, int currentEnrollment) {
+    for (int i = 0; i < tableModel.getRowCount(); i++) {
+        if (tableModel.getValueAt(i, 0).equals(courseCode)) {
+            Course course = courseService.getCourseByCode(courseCode);
+            if (course != null) {
+                tableModel.setValueAt(
+                    String.format("%d/%d", currentEnrollment, course.getMaxStudents()), 
+                    i, 5
+                );
+            }
+            break;
+        }
+    }
+}
+    /**
+     * ✅ **الدالة المصححة: إدارة طلاب المادة**
+     */
+//    private void manageCourseStudents() {
+//        int selectedRow = courseTable.getSelectedRow();
+//        if (selectedRow == -1) {
+//            JOptionPane.showMessageDialog(this,
+//                "Please select a course to manage students.",
+//                "No Selection",
+//                JOptionPane.WARNING_MESSAGE);
+//            return;
+//        }
+//        
+//        String courseCode = (String) tableModel.getValueAt(selectedRow, 0);
+//        String currentStudents = (String) tableModel.getValueAt(selectedRow, 5); // تنسيق "X/Y"
+//        
+//        // ✅ **الحل: استخدام دالة جديدة لتحميل المادة مع الطلاب**
+//        Course course = loadCourseWithEnrollments(courseCode);
+//        
+//        if (course == null) {
+//            JOptionPane.showMessageDialog(this,
+//                "Course not found in database.",
+//                "Error",
+//                JOptionPane.ERROR_MESSAGE);
+//            return;
+//        }
+//        
+//        JDialog dialog = new JDialog(this, "Manage Students - " + course.getCourseCode(), true);
+//        dialog.setLayout(new BorderLayout());
+//        dialog.setSize(600, 500);
+//        
+//        // لوحة معلومات المادة
+//        JPanel infoPanel = new JPanel(new GridLayout(3, 2, 10, 5));
+//        infoPanel.setBorder(BorderFactory.createTitledBorder("Course Information"));
+//        infoPanel.add(new JLabel("Course:"));
+//        infoPanel.add(new JLabel(course.getCourseCode() + " - " + course.getCourseName()));
+//        infoPanel.add(new JLabel("Teacher:"));
+//        infoPanel.add(new JLabel(course.getAssignedTeacher() != null ? 
+//            course.getAssignedTeacher().getName() : "Not Assigned"));
+//        infoPanel.add(new JLabel("Enrollment:"));
+//        infoPanel.add(new JLabel(course.getCurrentEnrollment() + "/" + course.getMaxStudents() + 
+//            " (" + course.getAvailableSeats() + " available)"));
+//        
+//        // قائمة الطلاب المسجلين
+//        DefaultTableModel enrolledModel = new DefaultTableModel(
+//            new String[]{"Student ID", "Name", "Grade", "Email"}, 0) {
+//            @Override
+//            public boolean isCellEditable(int row, int column) {
+//                return false;
+//            }
+//        };
+//        
+//        JTable enrolledTable = new JTable(enrolledModel);
+//        enrolledTable.setRowHeight(25);
+//        
+//        // ✅ **التحميل المباشر للطلاب المسجلين**
+//        List<Student> enrolledStudents = course.getEnrolledStudents();
+//        System.out.println("📊 Enrolled students in " + course.getCourseCode() + ": " + enrolledStudents.size());
+//        
+//        for (Student student : enrolledStudents) {
+//            enrolledModel.addRow(new Object[]{
+//                student.getStudentId(),
+//                student.getName(),
+//                student.getGrade(),
+//                student.getEmail()
+//            });
+//        }
+//        
+//        JScrollPane enrolledScroll = new JScrollPane(enrolledTable);
+//        enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+//            "Enrolled Students (" + enrolledStudents.size() + ")"
+//        ));
+//        
+//        // لوحة الإجراءات
+//        JPanel actionPanel = new JPanel(new FlowLayout());
+//        JButton enrollButton = new JButton("➕ Enroll Student");
+//        JButton unenrollButton = new JButton("➖ Remove Student");
+//        JButton refreshButton = new JButton("🔄 Refresh List");
+//        
+//        enrollButton.setBackground(new Color(46, 204, 113));
+//        enrollButton.setForeground(Color.WHITE);
+//        unenrollButton.setBackground(new Color(231, 76, 60));
+//        unenrollButton.setForeground(Color.WHITE);
+//        refreshButton.setBackground(new Color(52, 152, 219));
+//        refreshButton.setForeground(Color.WHITE);
+//        
+//        enrollButton.addActionListener(e -> {
+//            // ✅ **الحل: الحصول على قائمة الطلاب الحالية مباشرة من قاعدة البيانات**
+//            List<Student> allStudents = studentService.getAllStudents();
+//            List<Student> currentlyEnrolled = courseService.getCoursesByStudent(""); // الحصول على قائمة بالطلاب المسجلين
+//            
+//            // تصفية الطلاب غير المسجلين
+//            List<Student> availableStudents = new ArrayList<>(allStudents);
+//            availableStudents.removeAll(enrolledStudents);
+//            
+//            if (availableStudents.isEmpty()) {
+//                JOptionPane.showMessageDialog(dialog,
+//                    "All students are already enrolled in this course.",
+//                    "No Students Available",
+//                    JOptionPane.INFORMATION_MESSAGE);
+//                return;
+//            }
+//            
+//            if (course.isFull()) {
+//                JOptionPane.showMessageDialog(dialog,
+//                    "Course is full! Cannot enroll more students.\n" +
+//                    "Maximum capacity: " + course.getMaxStudents(),
+//                    "Course Full",
+//                    JOptionPane.WARNING_MESSAGE);
+//                return;
+//            }
+//            
+//            String[] studentOptions = availableStudents.stream()
+//                .map(s -> s.getStudentId() + " - " + s.getName() + " (" + s.getGrade() + ")")
+//                .toArray(String[]::new);
+//            
+//            String selected = (String) JOptionPane.showInputDialog(dialog,
+//                "Select student to enroll:\n" +
+//                "Available seats: " + course.getAvailableSeats() + "\n" +
+//                "Current enrollment: " + course.getCurrentEnrollment() + "/" + course.getMaxStudents(),
+//                "Enroll Student",
+//                JOptionPane.PLAIN_MESSAGE,
+//                null,
+//                studentOptions,
+//                studentOptions[0]);
+//            
+//            if (selected != null) {
+//                String studentId = selected.split(" - ")[0];
+//                try {
+//                    // ✅ **تسجيل الطالب مباشرة في قاعدة البيانات**
+//                    boolean success = courseService.enrollStudentInCourse(course.getId(), studentId);
+//                    
+//                    if (success) {
+//                        JOptionPane.showMessageDialog(dialog,
+//                            "✅ Student enrolled successfully!\n\n" +
+//                            "Student: " + selected.split(" - ")[1] + "\n" +
+//                            "New enrollment: " + (course.getCurrentEnrollment() + 1) + "/" + course.getMaxStudents(),
+//                            "Success",
+//                            JOptionPane.INFORMATION_MESSAGE);
+//                        
+//                        // ✅ **تحديث قائمة الطلاب مباشرة دون إغلاق النافذة**
+//                        updateEnrollmentTable(enrolledModel, course.getId());
+//                        updateCourseInfo(infoPanel, course.getId());
+//                        enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+//                            "Enrolled Students (" + (enrolledStudents.size() + 1) + ")"
+//                        ));
+//                        
+//                        // ✅ **تحديث الجدول الرئيسي**
+//                        updateMainTable(courseCode, course.getCurrentEnrollment() + 1);
+//                        
+//                    } else {
+//                        JOptionPane.showMessageDialog(dialog,
+//                            "❌ Failed to enroll student.\n" +
+//                            "The student may already be enrolled.",
+//                            "Enrollment Failed",
+//                            JOptionPane.ERROR_MESSAGE);
+//                    }
+//                } catch (Exception ex) {
+//                    JOptionPane.showMessageDialog(dialog,
+//                        "❌ Error: " + ex.getMessage(),
+//                        "Enrollment Failed",
+//                        JOptionPane.ERROR_MESSAGE);
+//                }
+//            }
+//        });
+//        
+//        unenrollButton.addActionListener(e -> {
+//            int selectedStudentRow = enrolledTable.getSelectedRow();
+//            if (selectedStudentRow == -1) {
+//                JOptionPane.showMessageDialog(dialog,
+//                    "Please select a student to remove.",
+//                    "No Selection",
+//                    JOptionPane.WARNING_MESSAGE);
+//                return;
+//            }
+//            
+//            String studentId = (String) enrolledModel.getValueAt(selectedStudentRow, 0);
+//            String studentName = (String) enrolledModel.getValueAt(selectedStudentRow, 1);
+//            
+//            int confirm = JOptionPane.showConfirmDialog(dialog,
+//                "Remove student from course?\n\n" +
+//                "Student: " + studentName + "\n" +
+//                "ID: " + studentId,
+//                "Confirm Removal",
+//                JOptionPane.YES_NO_OPTION);
+//            
+//            if (confirm == JOptionPane.YES_OPTION) {
+//                try {
+//                    // ✅ **إزالة الطالب مباشرة من قاعدة البيانات**
+//                    boolean success = courseService.unenrollStudentFromCourse(course.getId(), studentId);
+//                    
+//                    if (success) {
+//                        JOptionPane.showMessageDialog(dialog,
+//                            "✅ Student removed from course.",
+//                            "Success",
+//                            JOptionPane.INFORMATION_MESSAGE);
+//                        
+//                        // ✅ **تحديث قائمة الطلاب مباشرة**
+//                        enrolledModel.removeRow(selectedStudentRow);
+//                        updateCourseInfo(infoPanel, course.getId());
+//                        enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+//                            "Enrolled Students (" + (enrolledStudents.size() - 1) + ")"
+//                        ));
+//                        
+//                        // ✅ **تحديث الجدول الرئيسي**
+//                        updateMainTable(courseCode, course.getCurrentEnrollment() - 1);
+//                        
+//                    } else {
+//                        JOptionPane.showMessageDialog(dialog,
+//                            "❌ Failed to remove student.",
+//                            "Removal Failed",
+//                            JOptionPane.ERROR_MESSAGE);
+//                    }
+//                } catch (Exception ex) {
+//                    JOptionPane.showMessageDialog(dialog,
+//                        "❌ Error: " + ex.getMessage(),
+//                        "Removal Failed",
+//                        JOptionPane.ERROR_MESSAGE);
+//                }
+//            }
+//        });
+//        
+//        refreshButton.addActionListener(e -> {
+//            // ✅ **تحديث البيانات من قاعدة البيانات**
+//            course = loadCourseWithEnrollments(courseCode);
+//            if (course != null) {
+//                enrolledModel.setRowCount(0);
+//                for (Student student : course.getEnrolledStudents()) {
+//                    enrolledModel.addRow(new Object[]{
+//                        student.getStudentId(),
+//                        student.getName(),
+//                        student.getGrade(),
+//                        student.getEmail()
+//                    });
+//                }
+//                updateCourseInfo(infoPanel, course.getId());
+//                enrolledScroll.setBorder(BorderFactory.createTitledBorder(
+//                    "Enrolled Students (" + course.getCurrentEnrollment() + ")"
+//                ));
+//                JOptionPane.showMessageDialog(dialog,
+//                    "✅ List refreshed successfully!",
+//                    "Refresh Complete",
+//                    JOptionPane.INFORMATION_MESSAGE);
+//            }
+//        });
+//        
+//        actionPanel.add(enrollButton);
+//        actionPanel.add(unenrollButton);
+//        actionPanel.add(refreshButton);
+//        
+//        // زر الإغلاق
+//        JPanel closePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+//        JButton closeButton = new JButton("Close");
+//        closeButton.addActionListener(e -> {
+//            dialog.dispose();
+//            loadCourses(); // تحديث الجدول الرئيسي عند الإغلاق
+//        });
+//        closePanel.add(closeButton);
+//        
+//        JPanel mainActionPanel = new JPanel(new BorderLayout());
+//        mainActionPanel.add(actionPanel, BorderLayout.CENTER);
+//        mainActionPanel.add(closePanel, BorderLayout.EAST);
+//        
+//        dialog.add(infoPanel, BorderLayout.NORTH);
+//        dialog.add(enrolledScroll, BorderLayout.CENTER);
+//        dialog.add(mainActionPanel, BorderLayout.SOUTH);
+//        dialog.setLocationRelativeTo(this);
+//        dialog.setVisible(true);
+//    }
+//    
+//    /**
+//     * ✅ **دالة مساعدة: تحميل المادة مع الطلاب المسجلين**
+//     */
+//    private Course loadCourseWithEnrollments(String courseCode) {
+//        Course course = courseService.getCourseByCode(courseCode);
+//        if (course != null) {
+//            // الحصول على الطلاب المسجلين من قاعدة البيانات
+//            List<Student> enrolledStudents = courseService.getCoursesByStudent("").stream()
+//                .flatMap(c -> c.getEnrolledStudents().stream())
+//                .filter(s -> courseService.getCoursesByStudent(s.getStudentId()).stream()
+//                    .anyMatch(c -> c.getId() == course.getId()))
+//                .distinct()
+//                .toList();
+//            
+//            // تحديث كائن Course بالطلاب المسجلين
+//            course.getEnrolledStudents().clear();
+//            course.getEnrolledStudents().addAll(enrolledStudents);
+//        }
+//        return course;
+//    }
+//    
+//    /**
+//     * ✅ **دالة مساعدة: تحديث جدول الطلاب**
+//     */
+//    private void updateEnrollmentTable(DefaultTableModel model, int courseId) {
+//        model.setRowCount(0);
+//        Course updatedCourse = courseService.getCourseById(courseId);
+//        if (updatedCourse != null) {
+//            for (Student student : updatedCourse.getEnrolledStudents()) {
+//                model.addRow(new Object[]{
+//                    student.getStudentId(),
+//                    student.getName(),
+//                    student.getGrade(),
+//                    student.getEmail()
+//                });
+//            }
+//        }
+//    }
+//    
+//    /**
+//     * ✅ **دالة مساعدة: تحديث معلومات المادة**
+//     */
+//    private void updateCourseInfo(JPanel infoPanel, int courseId) {
+//        Course updatedCourse = courseService.getCourseById(courseId);
+//        if (updatedCourse != null) {
+//            // تحديث العناصر في infoPanel
+//            Component[] components = infoPanel.getComponents();
+//            for (int i = 0; i < components.length; i++) {
+//                if (components[i] instanceof JLabel) {
+//                    JLabel label = (JLabel) components[i];
+//                    if (label.getText().contains("Enrollment:")) {
+//                        // العنصر التالي هو الذي يحتوي على المعلومات
+//                        if (i + 1 < components.length && components[i + 1] instanceof JLabel) {
+//                            JLabel valueLabel = (JLabel) components[i + 1];
+//                            valueLabel.setText(updatedCourse.getCurrentEnrollment() + "/" + 
+//                                updatedCourse.getMaxStudents() + " (" + 
+//                                updatedCourse.getAvailableSeats() + " available)");
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    
+//    /**
+//     * ✅ **دالة مساعدة: تحديث الجدول الرئيسي**
+//     */
+//    private void updateMainTable(String courseCode, int newEnrollment) {
+//        for (int i = 0; i < tableModel.getRowCount(); i++) {
+//            if (tableModel.getValueAt(i, 0).equals(courseCode)) {
+//                // تحديث عمود الطلاب
+//                Course course = courseService.getCourseByCode(courseCode);
+//                if (course != null) {
+//                    tableModel.setValueAt(
+//                        String.format("%d/%d", newEnrollment, course.getMaxStudents()), 
+//                        i, 5
+//                    );
+//                }
+//                break;
+//            }
+//        }
+//    }
+//    
     private void viewCourseDetails() {
         int selectedRow = courseTable.getSelectedRow();
         if (selectedRow == -1) {
@@ -815,7 +1604,7 @@ public class CourseManagementFrame extends JFrame {
             courseService.addSampleCourses();
             loadCourses();
             JOptionPane.showMessageDialog(this,
-                "Sample courses added successfully!\n" +
+                "✅ Sample courses added successfully!\n" +
                 "You can now test course management features.",
                 "Success",
                 JOptionPane.INFORMATION_MESSAGE);
@@ -835,4 +1624,5 @@ public class CourseManagementFrame extends JFrame {
             frame.setVisible(true);
         });
     }
+    
 }
