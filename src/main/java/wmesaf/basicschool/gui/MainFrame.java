@@ -306,21 +306,36 @@ public class MainFrame extends JFrame {
         });
     }
     
-    private void openCourseManagement() {
-        SwingUtilities.invokeLater(() -> {
+// وإضافة دالة openCourseManagement():
+private void openCourseManagement() {
+    SwingUtilities.invokeLater(() -> {
+        try {
+            CourseManagementFrame courseFrame = new CourseManagementFrame();
+            courseFrame.setVisible(true);
+            System.out.println("✅ Course Management opened successfully");
+        } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
-                "Course Management Module\n\n" +
-                "This module is planned for Sprint 3.\n" +
-                "It will include:\n" +
-                "• Course creation and management\n" +
-                "• Teacher assignment to courses\n" +
-                "• Student enrollment\n" +
-                "• Course scheduling\n" +
-                "• Grade tracking",
-                "Course Management - Coming Soon",
-                JOptionPane.INFORMATION_MESSAGE);
-        });
-    }
+                "Error opening Course Management:\n" + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    });
+}
+//    private void openCourseManagement() {
+//        SwingUtilities.invokeLater(() -> {
+//            JOptionPane.showMessageDialog(this,
+//                "Course Management Module\n\n" +
+//                "This module is planned for Sprint 3.\n" +
+//                "It will include:\n" +
+//                "• Course creation and management\n" +
+//                "• Teacher assignment to courses\n" +
+//                "• Student enrollment\n" +
+//                "• Course scheduling\n" +
+//                "• Grade tracking",
+//                "Course Management - Coming Soon",
+//                JOptionPane.INFORMATION_MESSAGE);
+//        });
+//    }
     
     /**
      * ✅ الدالة المعدلة: عرض التقارير المحسنة

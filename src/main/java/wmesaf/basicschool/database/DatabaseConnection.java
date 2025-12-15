@@ -28,7 +28,7 @@ public class DatabaseConnection {
                 System.out.println("✅ Foreign keys enabled");
             }
             
-            // 4. إنشاء الجداول إذا لم تكن موجودة
+            // 4. إنشاء جميع الجداول
             createTables();
             
             // 5. إضافة بيانات اختبارية
@@ -43,9 +43,8 @@ public class DatabaseConnection {
     }
     
     private void createTables() throws SQLException {
-        System.out.println("\n🔧 Creating tables...");
+        System.out.println("\n🔧 Creating all tables...");
         
-        // إزالة AUTOINCREMENT واستخدام طريقة يدوية للتحكم في الـ IDs
         String[] tables = {
             // جدول admins
             "CREATE TABLE IF NOT EXISTS admins (" +
@@ -87,6 +86,34 @@ public class DatabaseConnection {
             "  salary REAL," +
             "  hire_date TEXT," +
             "  FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE" +
+            ")",
+            
+            // جدول courses (جديد)
+            "CREATE TABLE IF NOT EXISTS courses (" +
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "  course_code TEXT UNIQUE NOT NULL," +
+            "  course_name TEXT NOT NULL," +
+            "  description TEXT," +
+            "  credit_hours INTEGER DEFAULT 3," +
+            "  department TEXT," +
+            "  start_date TEXT NOT NULL," +
+            "  end_date TEXT NOT NULL," +
+            "  max_students INTEGER DEFAULT 30," +
+            "  teacher_id INTEGER," +
+            "  created_at DATETIME DEFAULT CURRENT_TIMESTAMP," +
+            "  FOREIGN KEY (teacher_id) REFERENCES teachers(person_id)" +
+            ")",
+            
+            // جدول تسجيلات المواد (جديد)
+            "CREATE TABLE IF NOT EXISTS course_enrollments (" +
+            "  course_id INTEGER NOT NULL," +
+            "  student_id TEXT NOT NULL," +
+            "  enrollment_date TEXT DEFAULT CURRENT_TIMESTAMP," +
+            "  grade REAL," +
+            "  status TEXT DEFAULT 'ENROLLED'," +
+            "  PRIMARY KEY (course_id, student_id)," +
+            "  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE," +
+            "  FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE" +
             ")"
         };
         
@@ -101,7 +128,15 @@ public class DatabaseConnection {
     
     private String extractTableName(String sql) {
         try {
-            return sql.split("CREATE TABLE IF NOT EXISTS")[1].split("\\s+")[1].split("\\(")[0].trim();
+            // استخراج اسم الجدول من SQL
+            if (sql.contains("CREATE TABLE IF NOT EXISTS")) {
+                String temp = sql.split("CREATE TABLE IF NOT EXISTS")[1];
+                return temp.split("\\s+")[1].split("\\(")[0].trim();
+            } else if (sql.contains("CREATE TABLE")) {
+                String temp = sql.split("CREATE TABLE")[1];
+                return temp.split("\\s+")[1].split("\\(")[0].trim();
+            }
+            return "table";
         } catch (Exception e) {
             return "table";
         }
@@ -114,49 +149,56 @@ public class DatabaseConnection {
             ResultSet rs = stmt.executeQuery(checkAdmin);
             
             if (rs.next() && rs.getInt("count") == 0) {
-                // استخدام ID ثابت للـ admin
-                String insertAdmin = "INSERT INTO admins (id, username, password, full_name, email) VALUES " +
-                                   "(1, 'admin', 'admin123', 'System Administrator', 'admin@school.com')";
+                String insertAdmin = "INSERT INTO admins (username, password, full_name, email) VALUES " +
+                                   "('admin', 'admin123', 'System Administrator', 'admin@school.com')";
                 stmt.executeUpdate(insertAdmin);
-                System.out.println("✅ Default admin created (ID: 1)");
+                System.out.println("✅ Default admin created");
             }
             
-            // 2. التحقق من وجود بيانات
+            // 2. التحقق من وجود بيانات الطلاب
             String checkStudents = "SELECT COUNT(*) as count FROM students";
             rs = stmt.executeQuery(checkStudents);
             
             if (rs.next() && rs.getInt("count") == 0) {
-                System.out.println("\n📊 Adding test data with sequential IDs...");
-                
-                // إضافة 50 طالب بترتيب متسلسل
-                for (int i = 1; i <= 50; i++) {
-                    // استخدام ID مباشر (i) بدلاً من الاعتماد على AUTOINCREMENT
-                    addStudentWithId(stmt, i);
-                }
-                System.out.println("✅ Added 50 students with IDs 1-50");
-                
-                // إضافة 30 معلم بترتيب متسلسل (يبدأ من 51)
-                for (int i = 51; i <= 80; i++) {
-                    addTeacherWithId(stmt, i, i - 50);
-                }
-                System.out.println("✅ Added 30 teachers with IDs 51-80");
-                
-                System.out.println("\n📋 Total records:");
-                System.out.println("   Persons: " + getCount("persons"));
-                System.out.println("   Students: " + getCount("students"));
-                System.out.println("   Teachers: " + getCount("teachers"));
-            } else {
-                System.out.println("\n📊 Database already contains data:");
-                System.out.println("   Students: " + getCount("students"));
-                System.out.println("   Teachers: " + getCount("teachers"));
+                System.out.println("\n📊 Adding test students...");
+                addSampleStudents(stmt);
+                System.out.println("✅ Added sample students");
             }
+            
+            // 3. التحقق من وجود بيانات المعلمين
+            String checkTeachers = "SELECT COUNT(*) as count FROM teachers";
+            rs = stmt.executeQuery(checkTeachers);
+            
+            if (rs.next() && rs.getInt("count") == 0) {
+                System.out.println("\n👨‍🏫 Adding test teachers...");
+                addSampleTeachers(stmt);
+                System.out.println("✅ Added sample teachers");
+            }
+            
+            // 4. التحقق من وجود بيانات المواد (جديد)
+            String checkCourses = "SELECT COUNT(*) as count FROM courses";
+            rs = stmt.executeQuery(checkCourses);
+            
+            if (rs.next() && rs.getInt("count") == 0) {
+                System.out.println("\n📚 Adding sample courses...");
+                addSampleCourses(stmt);
+                System.out.println("✅ Added sample courses with enrollments");
+            }
+            
+            // 5. عرض الإحصائيات النهائية
+            System.out.println("\n📋 FINAL DATABASE STATISTICS:");
+            System.out.println("   Persons: " + getCount("persons"));
+            System.out.println("   Students: " + getCount("students"));
+            System.out.println("   Teachers: " + getCount("teachers"));
+            System.out.println("   Courses: " + getCount("courses"));
+            System.out.println("   Course Enrollments: " + getCount("course_enrollments"));
             
         } catch (SQLException e) {
             System.err.println("❌ Error adding test data: " + e.getMessage());
         }
     }
     
-    private void addStudentWithId(Statement stmt, int id) throws SQLException {
+    private void addSampleStudents(Statement stmt) throws SQLException {
         String[] firstNames = {"John", "Emma", "Michael", "Sophia", "James", "Olivia", "Robert", "Ava", 
                               "William", "Isabella", "David", "Mia", "Richard", "Charlotte", "Joseph", 
                               "Amelia", "Thomas", "Harper", "Charles", "Evelyn", "Christopher", "Abigail",
@@ -171,36 +213,41 @@ public class DatabaseConnection {
         String[] addresses = {"123 Main St, New York", "456 Oak Ave, Los Angeles", "789 Pine Rd, Chicago",
                              "321 Elm St, Houston", "654 Maple Dr, Phoenix", "987 Cedar Ln, Philadelphia"};
         
-        int index = id - 1;
-        String firstName = firstNames[index % firstNames.length];
-        String lastName = lastNames[index % lastNames.length];
-        String fullName = firstName + " " + lastName;
-        String studentId = "STU" + String.format("%03d", id);
-        String email = firstName.toLowerCase() + "." + lastName.toLowerCase() + id + "@school.com";
-        String phone = "555-01" + String.format("%02d", id);
-        String address = addresses[id % addresses.length];
-        String birthDate = (2004 + (id % 5)) + "-" + String.format("%02d", (id % 12) + 1) + "-" + String.format("%02d", (id % 28) + 1);
-        String grade = grades[id % grades.length];
-        String enrollDate = "2023-09-01";
-        
-        // إضافة الشخص بــ ID محدد
-        String insertPerson = String.format(
-            "INSERT INTO persons (id, type, name, email, phone, address, birth_date) VALUES " +
-            "(%d, 'STUDENT', '%s', '%s', '%s', '%s', '%s')",
-            id, fullName, email, phone, address, birthDate
-        );
-        stmt.executeUpdate(insertPerson);
-        
-        // إضافة الطالب
-        String insertStudent = String.format(
-            "INSERT INTO students (person_id, student_id, grade, enrollment_date) VALUES " +
-            "(%d, '%s', '%s', '%s')",
-            id, studentId, grade, enrollDate
-        );
-        stmt.executeUpdate(insertStudent);
+        for (int i = 1; i <= 50; i++) {
+            String firstName = firstNames[(i-1) % firstNames.length];
+            String lastName = lastNames[(i-1) % lastNames.length];
+            String fullName = firstName + " " + lastName;
+            String studentId = "STU" + String.format("%03d", i);
+            String email = firstName.toLowerCase() + "." + lastName.toLowerCase() + i + "@school.com";
+            String phone = "555-01" + String.format("%02d", i);
+            String address = addresses[i % addresses.length];
+            String birthDate = (2004 + (i % 5)) + "-" + String.format("%02d", (i % 12) + 1) + "-" + String.format("%02d", (i % 28) + 1);
+            String grade = grades[i % grades.length];
+            String enrollDate = "2023-09-01";
+            
+            // إضافة الشخص
+            String insertPerson = String.format(
+                "INSERT INTO persons (type, name, email, phone, address, birth_date) VALUES " +
+                "('STUDENT', '%s', '%s', '%s', '%s', '%s')",
+                fullName, email, phone, address, birthDate
+            );
+            stmt.executeUpdate(insertPerson);
+            
+            // الحصول على آخر ID
+            ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()");
+            int personId = rs.next() ? rs.getInt(1) : i;
+            
+            // إضافة الطالب
+            String insertStudent = String.format(
+                "INSERT INTO students (person_id, student_id, grade, enrollment_date) VALUES " +
+                "(%d, '%s', '%s', '%s')",
+                personId, studentId, grade, enrollDate
+            );
+            stmt.executeUpdate(insertStudent);
+        }
     }
     
-    private void addTeacherWithId(Statement stmt, int personId, int teacherNumber) throws SQLException {
+    private void addSampleTeachers(Statement stmt) throws SQLException {
         String[] teacherFirstNames = {"Alexander", "Benjamin", "Christopher", "Daniel", "Edward", 
                                      "Franklin", "George", "Henry", "Isaac", "Jacob", "Kevin", "Liam",
                                      "Nathan", "Oliver", "Patrick", "Quincy", "Richard", "Samuel",
@@ -217,34 +264,113 @@ public class DatabaseConnection {
         String[] teacherAddresses = {"101 Teacher St, Boston", "202 Educator Ave, Seattle", "303 Professor Rd, Miami",
                                     "404 Scholar Ln, Atlanta", "505 Academy Dr, Denver", "606 Campus St, Austin"};
         
-        int index = teacherNumber - 1;
-        String firstName = teacherFirstNames[index % teacherFirstNames.length];
-        String lastName = teacherLastNames[index % teacherLastNames.length];
-        String fullName = "Dr. " + firstName + " " + lastName;
-        String teacherId = "TCH" + String.format("%03d", teacherNumber);
-        String subject = subjects[teacherNumber % subjects.length];
-        double salary = 4500.00 + (teacherNumber * 100);
-        String email = firstName.toLowerCase() + "." + lastName.toLowerCase() + "@school.edu";
-        String phone = "555-02" + String.format("%02d", teacherNumber);
-        String address = teacherAddresses[teacherNumber % teacherAddresses.length];
-        String birthDate = (1970 + (teacherNumber % 30)) + "-" + String.format("%02d", (teacherNumber % 12) + 1) + "-" + String.format("%02d", (teacherNumber % 28) + 1);
-        String hireDate = (2010 + (teacherNumber % 15)) + "-" + String.format("%02d", ((teacherNumber % 9) + 1)) + "-" + String.format("%02d", ((teacherNumber % 20) + 1));
+        for (int i = 1; i <= 15; i++) {
+            String firstName = teacherFirstNames[(i-1) % teacherFirstNames.length];
+            String lastName = teacherLastNames[(i-1) % teacherLastNames.length];
+            String fullName = "Dr. " + firstName + " " + lastName;
+            String teacherId = "TCH" + String.format("%03d", i);
+            String subject = subjects[(i-1) % subjects.length];
+            double salary = 4500.00 + (i * 150);
+            String email = firstName.toLowerCase() + "." + lastName.toLowerCase() + "@school.edu";
+            String phone = "555-02" + String.format("%02d", i);
+            String address = teacherAddresses[i % teacherAddresses.length];
+            String birthDate = (1970 + (i % 30)) + "-" + String.format("%02d", (i % 12) + 1) + "-" + String.format("%02d", (i % 28) + 1);
+            String hireDate = (2010 + (i % 15)) + "-" + String.format("%02d", ((i % 9) + 1)) + "-" + String.format("%02d", ((i % 20) + 1));
+            
+            // إضافة الشخص
+            String insertPerson = String.format(
+                "INSERT INTO persons (type, name, email, phone, address, birth_date) VALUES " +
+                "('TEACHER', '%s', '%s', '%s', '%s', '%s')",
+                fullName, email, phone, address, birthDate
+            );
+            stmt.executeUpdate(insertPerson);
+            
+            // الحصول على آخر ID
+            ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()");
+            int personId = rs.next() ? rs.getInt(1) : 50 + i;
+            
+            // إضافة المعلم
+            String insertTeacher = String.format(
+                "INSERT INTO teachers (person_id, teacher_id, subject, salary, hire_date) VALUES " +
+                "(%d, '%s', '%s', %.2f, '%s')",
+                personId, teacherId, subject, salary, hireDate
+            );
+            stmt.executeUpdate(insertTeacher);
+        }
+    }
+    
+    private void addSampleCourses(Statement stmt) throws SQLException {
+        // أولاً: الحصول على قائمة المعلمين
+        String[] teacherIds = new String[15];
+        ResultSet rs = stmt.executeQuery("SELECT teacher_id FROM teachers ORDER BY teacher_id");
+        int teacherIndex = 0;
+        while (rs.next()) {
+            teacherIds[teacherIndex++] = rs.getString("teacher_id");
+        }
         
-        // إضافة الشخص بــ ID محدد
-        String insertPerson = String.format(
-            "INSERT INTO persons (id, type, name, email, phone, address, birth_date) VALUES " +
-            "(%d, 'TEACHER', '%s', '%s', '%s', '%s', '%s')",
-            personId, fullName, email, phone, address, birthDate
-        );
-        stmt.executeUpdate(insertPerson);
+        // مواد عينة
+        String[][] sampleCourses = {
+            {"CS101", "Introduction to Programming", "Basic programming concepts using Java", "3", "Computer Science"},
+            {"CS201", "Data Structures", "Fundamental data structures and algorithms", "4", "Computer Science"},
+            {"CS301", "Database Systems", "Design and implementation of database systems", "3", "Computer Science"},
+            {"MATH101", "Calculus I", "Differential and integral calculus", "4", "Mathematics"},
+            {"ENG101", "English Composition", "Academic writing and communication skills", "3", "Languages"},
+            {"PHYS101", "General Physics", "Mechanics, thermodynamics, and waves", "4", "Physics"},
+            {"CHEM101", "General Chemistry", "Atomic structure, chemical bonding, and reactions", "4", "Chemistry"},
+            {"BIO101", "General Biology", "Cell biology, genetics, and evolution", "4", "Biology"},
+            {"HIST101", "World History", "Major historical events and civilizations", "3", "History"},
+            {"ART101", "Introduction to Art", "Art history, theory, and basic techniques", "3", "Arts"}
+        };
         
-        // إضافة المعلم
-        String insertTeacher = String.format(
-            "INSERT INTO teachers (person_id, teacher_id, subject, salary, hire_date) VALUES " +
-            "(%d, '%s', '%s', %.2f, '%s')",
-            personId, teacherId, subject, salary, hireDate
+        String currentDate = java.time.LocalDate.now().toString();
+        String startDate = currentDate;
+        String endDate = java.time.LocalDate.now().plusMonths(4).toString();
+        
+        for (int i = 0; i < sampleCourses.length; i++) {
+            String[] course = sampleCourses[i];
+            String teacherId = (i < teacherIds.length) ? teacherIds[i] : teacherIds[0];
+            
+            // الحصول على person_id للمعلم
+            String getTeacherPersonId = String.format(
+                "SELECT person_id FROM teachers WHERE teacher_id = '%s'",
+                teacherId
+            );
+            rs = stmt.executeQuery(getTeacherPersonId);
+            int teacherPersonId = rs.next() ? rs.getInt("person_id") : 1;
+            
+            // إضافة المادة
+            String insertCourse = String.format(
+                "INSERT INTO courses (course_code, course_name, description, credit_hours, " +
+                "department, start_date, end_date, max_students, teacher_id) VALUES " +
+                "('%s', '%s', '%s', %s, '%s', '%s', '%s', %d, %d)",
+                course[0], course[1], course[2], course[3], course[4],
+                startDate, endDate, 30, teacherPersonId
+            );
+            stmt.executeUpdate(insertCourse);
+            
+            // الحصول على course_id
+            rs = stmt.executeQuery("SELECT last_insert_rowid()");
+            int courseId = rs.next() ? rs.getInt(1) : i + 1;
+            
+            // تسجيل بعض الطلاب في المادة
+            addSampleEnrollments(stmt, courseId, Math.min(15, 50));
+        }
+    }
+    
+    private void addSampleEnrollments(Statement stmt, int courseId, int numberOfStudents) throws SQLException {
+        // الحصول على قائمة الطلاب
+        ResultSet rs = stmt.executeQuery(
+            "SELECT student_id FROM students ORDER BY RANDOM() LIMIT " + numberOfStudents
         );
-        stmt.executeUpdate(insertTeacher);
+        
+        while (rs.next()) {
+            String studentId = rs.getString("student_id");
+            String insertEnrollment = String.format(
+                "INSERT OR IGNORE INTO course_enrollments (course_id, student_id) VALUES (%d, '%s')",
+                courseId, studentId
+            );
+            stmt.executeUpdate(insertEnrollment);
+        }
     }
     
     private int getCount(String tableName) throws SQLException {
@@ -288,25 +414,38 @@ public class DatabaseConnection {
         System.out.println("   Connection: " + (isConnectionValid() ? "ACTIVE" : "INACTIVE"));
         
         try (Statement stmt = connection.createStatement()) {
+            // الطلاب
             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM students");
             if (rs.next()) {
                 System.out.println("   Students: " + rs.getInt("count"));
             }
             
+            // المعلمون
             rs = stmt.executeQuery("SELECT COUNT(*) as count FROM teachers");
             if (rs.next()) {
                 System.out.println("   Teachers: " + rs.getInt("count"));
             }
             
-            // الحصول على آخر ID مستخدم
+            // المواد (جديد)
+            rs = stmt.executeQuery("SELECT COUNT(*) as count FROM courses");
+            if (rs.next()) {
+                System.out.println("   Courses: " + rs.getInt("count"));
+            }
+            
+            // التسجيلات (جديد)
+            rs = stmt.executeQuery("SELECT COUNT(*) as count FROM course_enrollments");
+            if (rs.next()) {
+                System.out.println("   Enrollments: " + rs.getInt("count"));
+            }
+            
+            // آخر ID للأشخاص
             rs = stmt.executeQuery("SELECT COALESCE(MAX(id), 0) as max_id FROM persons");
             if (rs.next()) {
                 System.out.println("   Last Person ID: " + rs.getInt("max_id"));
-                System.out.println("   Next Person ID: " + (rs.getInt("max_id") + 1));
             }
             
         } catch (SQLException e) {
-            // تجاهل
+            // تجاهل الأخطاء في طباعة الحالة
         }
     }
 
@@ -320,7 +459,6 @@ public class DatabaseConnection {
         }
     }
     
-    // دالة لإعادة ضبط قاعدة البيانات
     public void resetDatabase() {
         System.out.println("\n🔄 Resetting database...");
         try {
@@ -339,7 +477,6 @@ public class DatabaseConnection {
         }
     }
     
-    // دالة للحصول على آخر ID متاح
     public int getNextAvailableId() {
         String sql = "SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM persons";
         try (Statement stmt = connection.createStatement();
@@ -356,5 +493,31 @@ public class DatabaseConnection {
             System.err.println("❌ Error getting next ID: " + e.getMessage());
             return 1;
         }
+    }
+    
+    /**
+     * طريقة مساعدة للحصول على إحصائيات قاعدة البيانات
+     */
+    public String getDatabaseStatistics() {
+        StringBuilder stats = new StringBuilder();
+        stats.append("Database Statistics:\n");
+        stats.append("===================\n");
+        
+        try (Statement stmt = connection.createStatement()) {
+            String[] tables = {"persons", "students", "teachers", "courses", "course_enrollments", "admins"};
+            String[] labels = {"Persons", "Students", "Teachers", "Courses", "Enrollments", "Admins"};
+            
+            for (int i = 0; i < tables.length; i++) {
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM " + tables[i]);
+                if (rs.next()) {
+                    stats.append(String.format("%-15s: %d\n", labels[i], rs.getInt("count")));
+                }
+            }
+            
+        } catch (SQLException e) {
+            stats.append("Error getting statistics: ").append(e.getMessage());
+        }
+        
+        return stats.toString();
     }
 }
