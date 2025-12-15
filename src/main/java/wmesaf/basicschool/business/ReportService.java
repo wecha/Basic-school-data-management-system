@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
@@ -25,7 +26,7 @@ public class ReportService {
     }
     
     /**
-     * ✅ Student Statistics Report
+     * ✅ Student Statistics Report - **مُصَحَّح**
      */
     public String generateStudentStatisticsReport() {
         List<Student> students = studentService.getAllStudents();
@@ -35,9 +36,10 @@ public class ReportService {
         report.append("║                  STUDENT STATISTICS REPORT                      ║\n");
         report.append("╚══════════════════════════════════════════════════════════════════╝\n\n");
         
-        // Header
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        report.append("📅 Report Date: ").append(LocalDate.now().format(formatter)).append("\n");
+        // Header - **مُصَحَّح**: استخدام LocalDateTime بدلاً من LocalDate للوقت
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDateTime now = LocalDateTime.now();
+        report.append("📅 Report Date: ").append(now.format(formatter)).append("\n");
         report.append("📊 Total Students: ").append(students.size()).append("\n\n");
         
         if (students.isEmpty()) {
@@ -106,7 +108,7 @@ public class ReportService {
     }
     
     /**
-     * ✅ Teacher Statistics Report
+     * ✅ Teacher Statistics Report - **مُصَحَّح**
      */
     public String generateTeacherStatisticsReport() {
         List<Teacher> teachers = teacherService.getAllTeachers();
@@ -116,8 +118,8 @@ public class ReportService {
         report.append("║                 TEACHER STATISTICS REPORT                       ║\n");
         report.append("╚══════════════════════════════════════════════════════════════════╝\n\n");
         
-        // Header
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        // Header - **مُصَحَّح**
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         report.append("📅 Report Date: ").append(LocalDate.now().format(formatter)).append("\n");
         report.append("👩‍🏫 Total Teachers: ").append(teachers.size()).append("\n\n");
         
@@ -220,7 +222,7 @@ public class ReportService {
     }
     
     /**
-     * ✅ Course Statistics Report
+     * ✅ Course Statistics Report - **مُصَحَّح**
      */
     public String generateCourseStatisticsReport() {
         List<Course> courses = courseService.getAllCourses();
@@ -231,8 +233,8 @@ public class ReportService {
         report.append("║                  COURSE STATISTICS REPORT                       ║\n");
         report.append("╚══════════════════════════════════════════════════════════════════╝\n\n");
         
-        // Header
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        // Header - **مُصَحَّح**
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         report.append("📅 Report Date: ").append(LocalDate.now().format(formatter)).append("\n");
         report.append("📚 Total Courses: ").append(courses.size()).append("\n\n");
         
@@ -343,7 +345,7 @@ public class ReportService {
     }
     
     /**
-     * ✅ System Summary Report
+     * ✅ System Summary Report - **مُصَحَّح**
      */
     public String generateSystemSummaryReport() {
         StringBuilder report = new StringBuilder();
